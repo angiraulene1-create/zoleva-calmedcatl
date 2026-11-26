@@ -87,6 +87,12 @@ test('los logos aportados y las ilustraciones de tutores están disponibles', as
   }
 });
 
+test('el tutor es 2D y no usa perspectiva ni transformaciones 3D', async () => {
+  const css = await readFile(new URL('../public/styles.css', import.meta.url), 'utf8');
+  assert.doesNotMatch(css, /\.tutor3d\s*\{[^}]*perspective/);
+  assert.doesNotMatch(css, /translateZ|rotateY/);
+});
+
 test('los siete niveles cubren desde kínder hasta doctorado', () => {
   const keys = Object.keys(LEVELS);
   assert.equal(keys.length, 7);

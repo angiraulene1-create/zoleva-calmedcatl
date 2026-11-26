@@ -1,4 +1,5 @@
 import http from 'node:http';
+import { randomBytes } from 'node:crypto';
 import { readFile, writeFile, mkdir, rename, stat } from 'node:fs/promises';
 import { existsSync, readFileSync } from 'node:fs';
 import { join, extname, normalize } from 'node:path';
@@ -6,14 +7,23 @@ import { fileURLToPath } from 'node:url';
 import { PROVIDERS, chat, modelsFor, defaultModel, isCli, cliBinary, cliWorks } from './src/providers.js';
 import { buildGenerateMessages, buildChatMessages, normalizeGenerated } from './src/prompts.js';
 import { demoGenerate } from './src/demo.js';
+import {
+  AUTH_COOKIE, OAUTH_COOKIE, AUTH_PROVIDERS, normalizeAuth, publicAuthStatus, publicUser,
+  providerUrl, signToken, verifyToken, pkceChallenge, newOAuthState, parseCookies,
+  readAccounts, writeAccounts, createEmailUser, verifyEmailUser, findOrCreateOAuthUser,
+} from './src/auth.js';
 
 const ROOT = fileURLToPath(new URL('.', import.meta.url));
 const PUBLIC = join(ROOT, 'public');
 const DATA = join(ROOT, '.data');
 const CONFIG_FILE = join(DATA, 'config.json');
+const ACCOUNTS_FILE = join(DATA, 'accounts.json');
+const BACKUPS = join(DATA, 'backups');
 const PORT = Number(process.env.PORT || 3000);
 const HOST = process.env.HOST || '127.0.0.1';
 const MAX_BODY = 24 * 1024 * 1024;
+let generatedAuthSecret = null;
+const loginAttempts = new Map();
 
 function loadEnv() {
   const file = join(ROOT, '.env');
@@ -44,24 +54,34 @@ function defaultConfig() {
     },
     cli: { customCommand: '' },
     cloud: { url: process.env.ZOLEVA_CLOUD_URL || '', token: process.env.ZOLEVA_CLOUD_TOKEN || '' },
+    auth: {},
   };
 }
 
 async function readConfig() {
+  let stored = {};
+  let parsed = false;
   try {
-    const stored = JSON.parse(await readFile(CONFIG_FILE, 'utf8'));
-    const base = defaultConfig();
-    return {
-      ...base,
-      ...stored,
-      apiKeys: { ...base.apiKeys, ...(stored.apiKeys || {}) },
-      endpoints: { ...base.endpoints, ...(stored.endpoints || {}) },
-      cli: { ...base.cli, ...(stored.cli || {}) },
-      cloud: { ...base.cloud, ...(stored.cloud || {}) },
-    };
+    stored = JSON.parse(await readFile(CONFIG_FILE, 'utf8'));
+    parsed = true;
   } catch {
-    return defaultConfig();
+    // Sin configuración previa se usa la configuración por defecto.
   }
+  const base = defaultConfig();
+  const auth = normalizeAuth(stored.auth || {}, process.env, generatedAuthSecret);
+  generatedAuthSecret = auth.sessionSecret;
+  const config = {
+    ...base,
+    ...stored,
+    apiKeys: { ...base.apiKeys, ...(stored.apiKeys || {}) },
+    endpoints: { ...base.endpoints, ...(stored.endpoints || {}) },
+    cli: { ...base.cli, ...(stored.cli || {}) },
+    cloud: { ...base.cloud, ...(stored.cloud || {}) },
+    auth,
+  };
+  const missingSecret = !stored.auth?.sessionSecret && !process.env.ZOLEVA_SESSION_SECRET;
+  if (missingSecret && (parsed || !existsSync(CONFIG_FILE))) await writeConfig(config);
+  return config;
 }
 
 async function writeConfig(config) {
@@ -133,6 +153,93 @@ function cloudRequest(config, options = {}) {
       ...(options.headers || {}),
     },
   });
+}
+
+/** Las cuentas iniciadas tienen su propia nube; sin sesión se usa la nube del equipo. */
+function effectiveConfig(config, user) {
+  if (!user) return config;
+  return { ...config, cloud: { url: user.cloud?.url || '', token: user.cloud?.token || '' } };
+}
+
+/** Respaldo directo en el servidor de la app: solo para cuentas con sesión. */
+function backupFile(userId) {
+  const id = String(userId || '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 80) || 'anon';
+  return join(BACKUPS, `${id}.json`);
+}
+
+async function writeBackup(file, value) {
+  await mkdir(BACKUPS, { recursive: true });
+  const temp = `${file}.${process.pid}.${randomBytes(4).toString('hex')}.tmp`;
+  await writeFile(temp, JSON.stringify(value, null, 2), { mode: 0o600 });
+  await rename(temp, file);
+}
+
+function isSecure(req) {
+  const forwarded = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim();
+  return Boolean(forwarded === 'https' || req.socket.encrypted);
+}
+
+function cookieString(req, name, value, maxAge) {
+  return `${name}=${value}; Path=/; Max-Age=${maxAge}; HttpOnly; SameSite=Lax${isSecure(req) ? '; Secure' : ''}`;
+}
+
+function clearCookieString(req, name) {
+  return `${name}=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax${isSecure(req) ? '; Secure' : ''}`;
+}
+
+function sessionHeader(req, user, config) {
+  const maxAge = 30 * 24 * 60 * 60;
+  const token = signToken({ kind: 'session', uid: user.id, exp: Date.now() + maxAge * 1000 }, config.auth.sessionSecret);
+  return cookieString(req, AUTH_COOKIE, token, maxAge);
+}
+
+function publicOrigin(req, config) {
+  const configured = String(config.auth.baseUrl || '').replace(/\/$/, '');
+  if (configured) return configured;
+  const proto = isSecure(req) ? 'https' : 'http';
+  const host = req.headers.host || `${HOST}:${PORT}`;
+  return `${proto}://${host}`;
+}
+
+function authRedirect(res, origin, status, message = '') {
+  const query = new URLSearchParams({ auth: status });
+  if (message) query.set('authMessage', message.slice(0, 200));
+  return send(res, 302, '', 'text/plain; charset=utf-8', { Location: `${origin}/?${query}#/app/cuenta` });
+}
+
+async function currentUser(req, config) {
+  if (!config.auth.enabled) return null;
+  const token = parseCookies(req.headers.cookie)[AUTH_COOKIE];
+  const payload = verifyToken(token, config.auth.sessionSecret);
+  if (!payload || payload.kind !== 'session' || !payload.uid || payload.exp <= Date.now()) return null;
+  const accounts = await readAccounts(ACCOUNTS_FILE);
+  return accounts.users.find((user) => user.id === payload.uid) || null;
+}
+
+function inheritGlobalCloud(accounts, user, config) {
+  const index = accounts.users.findIndex((item) => item.id === user.id);
+  if (index >= 0 && !accounts.users[index].cloud?.url && config.cloud?.url) {
+    accounts.users[index].cloud = { ...config.cloud };
+  }
+  return accounts;
+}
+
+function rateLimited(key) {
+  const now = Date.now();
+  const entry = loginAttempts.get(key);
+  if (!entry || entry.until <= now) {
+    loginAttempts.set(key, { count: 0, until: now + 10 * 60 * 1000 });
+    return false;
+  }
+  return entry.count >= 8;
+}
+
+function recordAttempt(key, ok) {
+  const now = Date.now();
+  let entry = loginAttempts.get(key);
+  if (!entry || entry.until <= now) entry = { count: 0, until: now + 10 * 60 * 1000 };
+  entry.count = ok ? 0 : entry.count + 1;
+  loginAttempts.set(key, entry);
 }
 
 async function probeOllama(config) {
@@ -253,6 +360,7 @@ const server = http.createServer(async (req, res) => {
 
     if (path.startsWith('/api/')) {
       const config = await readConfig();
+      const user = await currentUser(req, config);
 
       if (path === '/api/status' && req.method === 'GET') {
         return json(res, 200, {
@@ -265,12 +373,14 @@ const server = http.createServer(async (req, res) => {
 
       if (path === '/api/config' && req.method === 'GET') {
         const safe = structuredClone(config);
+        delete safe.auth;
         for (const [name, value] of Object.entries(safe.apiKeys)) {
           safe.apiKeys[name] = value ? '••••••••' : '';
         }
+        const cloud = user ? (user.cloud || {}) : safe.cloud;
         safe.cloud = {
-          ...safe.cloud,
-          token: safe.cloud.token ? '••••••••' : '',
+          url: cloud.url || '',
+          token: cloud.token ? '••••••••' : '',
         };
         return json(res, 200, safe);
       }
@@ -298,20 +408,32 @@ const server = http.createServer(async (req, res) => {
           if (typeof body.endpoints?.[name] === 'string') next.endpoints[name] = body.endpoints[name].trim();
         }
         if (typeof body.cli?.customCommand === 'string') next.cli.customCommand = body.cli.customCommand.slice(0, 1000);
-        if (typeof body.cloud?.url === 'string') next.cloud.url = body.cloud.url.trim().slice(0, 500);
+
+        const cloud = { ...(user ? (user.cloud || {}) : current.cloud) };
+        if (typeof body.cloud?.url === 'string') cloud.url = body.cloud.url.trim().slice(0, 500);
         if (typeof body.cloud?.token === 'string' && body.cloud.token && !body.cloud.token.startsWith('••')) {
-          next.cloud.token = body.cloud.token.trim().slice(0, 500);
+          cloud.token = body.cloud.token.trim().slice(0, 500);
         }
-        if (body.cloud?.token === '') next.cloud.token = '';
-        if (next.cloud.url) {
+        if (body.cloud?.token === '') cloud.token = '';
+        if (cloud.url) {
           try {
-            const parsed = new URL(next.cloud.url);
+            const parsed = new URL(cloud.url);
             if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('protocolo');
           } catch {
             return json(res, 400, { error: 'La URL de la nube debe empezar con http:// o https://' });
           }
         }
         if (!PROVIDERS.some((p) => p.id === next.provider)) return json(res, 400, { error: 'Proveedor no válido' });
+        if (user) {
+          const accounts = await readAccounts(ACCOUNTS_FILE);
+          const index = accounts.users.findIndex((item) => item.id === user.id);
+          if (index >= 0) {
+            accounts.users[index].cloud = cloud;
+            await writeAccounts(ACCOUNTS_FILE, accounts);
+          }
+        } else {
+          next.cloud = cloud;
+        }
         await writeConfig(next);
         return json(res, 200, { ok: true });
       }
@@ -322,7 +444,7 @@ const server = http.createServer(async (req, res) => {
         const raw = JSON.stringify(body.data);
         const bytes = Buffer.byteLength(raw);
         if (bytes > 4 * 1024 * 1024) return json(res, 413, { error: 'El respaldo supera 4 MB. Quita fotos o conversaciones antiguas.' });
-        const response = await cloudRequest(config, {
+        const response = await cloudRequest(effectiveConfig(config, user), {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: raw,
@@ -332,7 +454,7 @@ const server = http.createServer(async (req, res) => {
       }
 
       if (path === '/api/cloud/pull' && req.method === 'POST') {
-        const response = await cloudRequest(config);
+        const response = await cloudRequest(effectiveConfig(config, user));
         if (response.status === 404) return json(res, 200, { data: null, at: new Date().toISOString() });
         if (!response.ok) throw new Error(`La nube respondió ${response.status}: ${(await response.text()).slice(0, 200)}`);
         const text = await response.text();
@@ -346,6 +468,181 @@ const server = http.createServer(async (req, res) => {
           }
         }
         return json(res, 200, { data, at: new Date().toISOString() });
+      }
+
+      if (path === '/api/account/backup' && req.method === 'POST') {
+        if (!user) return json(res, 401, { error: 'Inicia sesión para guardar el respaldo de tu cuenta.' });
+        const body = await readBody(req);
+        if (!body.data || typeof body.data !== 'object') return json(res, 400, { error: 'No hay datos para subir.' });
+        const raw = JSON.stringify(body.data);
+        const bytes = Buffer.byteLength(raw);
+        if (bytes > 4 * 1024 * 1024) return json(res, 413, { error: 'El respaldo supera 4 MB. Quita fotos o conversaciones antiguas.' });
+        const at = new Date().toISOString();
+        await writeBackup(backupFile(user.id), { version: 1, at, data: body.data });
+        return json(res, 200, { ok: true, bytes, at });
+      }
+
+      if (path === '/api/account/backup' && req.method === 'GET') {
+        if (!user) return json(res, 401, { error: 'Inicia sesión para bajar el respaldo de tu cuenta.' });
+        let stored = null;
+        try {
+          stored = JSON.parse(await readFile(backupFile(user.id), 'utf8'));
+        } catch {
+          // Sin respaldo previo para esta cuenta.
+        }
+        if (!stored?.data) return json(res, 200, { data: null, at: new Date().toISOString() });
+        return json(res, 200, { data: stored.data, at: stored.at || '' });
+      }
+
+      if (path === '/api/auth/status' && req.method === 'GET') {
+        return json(res, 200, { ...publicAuthStatus(config.auth), user: publicUser(user) });
+      }
+
+      if (path === '/api/auth/register' && req.method === 'POST') {
+        if (!config.auth.enabled || !config.auth.email) {
+          return json(res, 403, { error: 'El acceso con correo está desactivado en este servidor.' });
+        }
+        const body = await readBody(req);
+        const key = `${req.socket.remoteAddress || ''}:${String(body.email || '').trim().toLowerCase()}`;
+        if (rateLimited(key)) return json(res, 429, { error: 'Demasiados intentos. Espera unos minutos.' });
+        const accounts = await readAccounts(ACCOUNTS_FILE);
+        let created;
+        try {
+          created = createEmailUser(accounts, body);
+        } catch (error) {
+          recordAttempt(key, false);
+          return json(res, 400, { error: error.message });
+        }
+        recordAttempt(key, true);
+        await writeAccounts(ACCOUNTS_FILE, inheritGlobalCloud(created.accounts, created.user, config));
+        return send(res, 200, { ok: true, user: publicUser(created.user) },
+          'application/json; charset=utf-8', { 'Set-Cookie': sessionHeader(req, created.user, config) });
+      }
+
+      if (path === '/api/auth/login' && req.method === 'POST') {
+        if (!config.auth.enabled || !config.auth.email) {
+          return json(res, 403, { error: 'El acceso con correo está desactivado en este servidor.' });
+        }
+        const body = await readBody(req);
+        const key = `${req.socket.remoteAddress || ''}:${String(body.email || '').trim().toLowerCase()}`;
+        if (rateLimited(key)) return json(res, 429, { error: 'Demasiados intentos. Espera unos minutos.' });
+        const accounts = await readAccounts(ACCOUNTS_FILE);
+        const found = verifyEmailUser(accounts, body);
+        recordAttempt(key, Boolean(found));
+        if (!found) return json(res, 401, { error: 'Correo o contraseña incorrectos.' });
+        await writeAccounts(ACCOUNTS_FILE, inheritGlobalCloud(accounts, found, config));
+        return send(res, 200, { ok: true, user: publicUser(found) },
+          'application/json; charset=utf-8', { 'Set-Cookie': sessionHeader(req, found, config) });
+      }
+
+      if (path === '/api/auth/logout' && req.method === 'POST') {
+        return send(res, 200, { ok: true }, 'application/json; charset=utf-8',
+          { 'Set-Cookie': clearCookieString(req, AUTH_COOKIE) });
+      }
+
+      const oauthStart = path.match(/^\/api\/auth\/(google|microsoft|github)$/);
+      if (oauthStart && req.method === 'GET') {
+        if (!config.auth.enabled) return json(res, 403, { error: 'Las cuentas están desactivadas en este servidor.' });
+        const provider = AUTH_PROVIDERS.find((item) => item.id === oauthStart[1]);
+        const settings = config.auth.providers[provider.id];
+        if (!settings.clientId || !settings.clientSecret) {
+          return json(res, 400, { error: `${provider.name} no está configurado en este servidor.` });
+        }
+        const origin = publicOrigin(req, config);
+        const redirectUri = `${origin}/api/auth/callback/${provider.id}`;
+        const verifier = randomBytes(32).toString('base64url');
+        const { state, token } = newOAuthState(config.auth.sessionSecret, provider.id, verifier);
+        const params = new URLSearchParams({
+          client_id: settings.clientId,
+          redirect_uri: redirectUri,
+          response_type: 'code',
+          scope: provider.scope,
+          state,
+        });
+        if (provider.pkce) {
+          params.set('code_challenge', pkceChallenge(verifier));
+          params.set('code_challenge_method', 'S256');
+        }
+        const location = `${providerUrl(provider, 'authorize', config.auth)}?${params}`;
+        return send(res, 302, '', 'text/plain; charset=utf-8',
+          { Location: location, 'Set-Cookie': cookieString(req, OAUTH_COOKIE, token, 600) });
+      }
+
+      const oauthCallback = path.match(/^\/api\/auth\/callback\/(google|microsoft|github)$/);
+      if (oauthCallback && req.method === 'GET') {
+        const origin = publicOrigin(req, config);
+        const provider = AUTH_PROVIDERS.find((item) => item.id === oauthCallback[1]);
+        try {
+          const cookies = parseCookies(req.headers.cookie);
+          const oauth = verifyToken(cookies[OAUTH_COOKIE], config.auth.sessionSecret);
+          const state = String(url.searchParams.get('state') || '');
+          const error = url.searchParams.get('error');
+          if (error) throw new Error(`Acceso cancelado: ${error}`);
+          if (!oauth || oauth.kind !== 'oauth' || oauth.provider !== provider.id
+            || !state || oauth.state !== state || oauth.exp <= Date.now()) {
+            throw new Error('La sesión de acceso caducó. Inténtalo de nuevo.');
+          }
+          const code = String(url.searchParams.get('code') || '');
+          if (!code) throw new Error('El proveedor no devolvió un código de acceso.');
+          const settings = config.auth.providers[provider.id];
+          const redirectUri = `${origin}/api/auth/callback/${provider.id}`;
+          const tokenParams = new URLSearchParams({
+            client_id: settings.clientId,
+            client_secret: settings.clientSecret,
+            code,
+            redirect_uri: redirectUri,
+            grant_type: 'authorization_code',
+          });
+          if (provider.pkce && oauth.verifier) tokenParams.set('code_verifier', oauth.verifier);
+          const tokenResponse = await fetch(providerUrl(provider, 'token', config.auth), {
+            method: 'POST',
+            headers: { Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': 'Zoleva-Calmedcatl' },
+            body: tokenParams,
+            signal: AbortSignal.timeout(15000),
+          });
+          if (!tokenResponse.ok) throw new Error(`El proveedor rechazó el acceso (${tokenResponse.status}).`);
+          const tokenData = await tokenResponse.json().catch(() => null);
+          const accessToken = tokenData?.access_token;
+          if (!accessToken) throw new Error('El proveedor no devolvió un token.');
+
+          const profileResponse = await fetch(providerUrl(provider, 'profile', config.auth), {
+            headers: { Authorization: `Bearer ${accessToken}`, Accept: 'application/json', 'User-Agent': 'Zoleva-Calmedcatl' },
+            signal: AbortSignal.timeout(15000),
+          });
+          const profile = profileResponse.ok ? await profileResponse.json().catch(() => ({})) : {};
+          let email = String(profile.email || profile.preferred_username || profile.mail || '').toLowerCase();
+          let name = String(profile.name || profile.login || '').slice(0, 60);
+          let photo = '';
+          let providerId = '';
+          if (provider.id === 'google') {
+            providerId = String(profile.sub || '');
+            photo = String(profile.picture || '').slice(0, 1000);
+          } else if (provider.id === 'microsoft') {
+            providerId = String(profile.sub || profile.oid || profile.id || '');
+          } else {
+            providerId = String(profile.id || '');
+            photo = String(profile.avatar_url || '').slice(0, 1000);
+            if (!email) {
+              const emailsResponse = await fetch(provider.emails, {
+                headers: { Authorization: `Bearer ${accessToken}`, Accept: 'application/json', 'User-Agent': 'Zoleva-Calmedcatl' },
+                signal: AbortSignal.timeout(15000),
+              });
+              const emails = emailsResponse.ok ? await emailsResponse.json().catch(() => []) : [];
+              const chosen = emails.find((item) => item.primary && item.verified) || emails.find((item) => item.verified) || emails[0];
+              email = String(chosen?.email || '').toLowerCase();
+            }
+          }
+
+          const accounts = await readAccounts(ACCOUNTS_FILE);
+          const matched = findOrCreateOAuthUser(accounts, { provider: provider.id, providerId, email, name, photo });
+          await writeAccounts(ACCOUNTS_FILE, inheritGlobalCloud(matched.accounts, matched.user, config));
+          return send(res, 302, '', 'text/plain; charset=utf-8', {
+            Location: `${origin}/?auth=ok#/app/cuenta`,
+            'Set-Cookie': [clearCookieString(req, OAUTH_COOKIE), sessionHeader(req, matched.user, config)],
+          });
+        } catch (error) {
+          return authRedirect(res, origin, 'error', error.message);
+        }
       }
 
       if (path === '/api/models' && req.method === 'GET') {

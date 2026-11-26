@@ -113,7 +113,7 @@ const kidMode = () => ['kinder', 'primaria'].includes(profile()?.level) || (Numb
 const tutorEmoji = () => SKINS.find((s) => s.id === profile()?.skin)?.emoji || '🦉';
 const tutorAccessory = () => ACCESSORIES.find((a) => a.id === profile()?.accessory) || ACCESSORIES[0];
 
-/** Tutor 3D ligero: ilustración SVG con capas CSS, sin WebGL ni dependencias. */
+/** Tutor ilustrado 2D: SVG plano con accesorios CSS, sin WebGL ni dependencias. */
 function tutor3d(size = 'sm', skinId = profile()?.skin || 'jade', accessoryId = profile()?.accessory || 'none') {
   const skin = SKINS.find((s) => s.id === skinId) || SKINS[0];
   const accessory = ACCESSORIES.find((a) => a.id === accessoryId) || ACCESSORIES[0];
@@ -218,6 +218,7 @@ if (!state.profiles.length) {
 }
 let config = null;
 let status = null;
+let auth = null;
 
 function save() {
   const active = profile();
@@ -244,8 +245,9 @@ function cloudPayload() {
   if (active) active.save = pickProfileData(state);
   return {
     app: 'zoleva-calmedcatl',
-    version: 3,
+    version: 4,
     exportedAt: new Date().toISOString(),
+    owner: auth?.user ? { id: auth.user.id, email: auth.user.email, provider: auth.user.provider } : null,
     activeProfile: state.activeProfile,
     profiles: state.profiles.map((p) => ({
       ...p,
@@ -360,6 +362,7 @@ function toast(text, error = false) {
 
 async function api(path, options = {}) {
   const response = await fetch(path, {
+    credentials: 'same-origin',
     ...options,
     headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
   });
@@ -823,6 +826,61 @@ function renderGame(resource) {
     ${listBlock('Materiales', resource.materials)}${listBlock('Instrucciones', resource.instructions)}${listBlock('Reglas', resource.rules)}${listBlock('Variantes', resource.variations)}</div>`;
 }
 
+const AUTH_META = {
+  email: { icon: '✉️', name: 'Correo' },
+  google: { icon: '🔵', name: 'Google' },
+  microsoft: { icon: '🪟', name: 'Microsoft' },
+  github: { icon: '🐙', name: 'GitHub' },
+};
+
+function cloudAccountPanel() {
+  const info = auth || { enabled: false, email: false, providers: [] };
+  if (info.user) {
+    const meta = AUTH_META[info.user.provider] || AUTH_META.email;
+    return `<div class="panel stack">
+      <div class="panel-title"><h2>👤 Tu cuenta en la nube</h2><span class="pill done">sesión iniciada</span></div>
+      <div class="row">
+        <span class="avatar sm">${info.user.photo ? `<img src="${esc(info.user.photo)}" alt="" />` : '👤'}</span>
+        <div class="grow"><strong>${esc(info.user.name || info.user.email || 'Mi cuenta')}</strong><br /><span class="tiny muted">${esc(info.user.email || 'Sin correo público')} · ${meta.icon} ${meta.name}</span></div>
+        <button class="btn small ghost" data-action="auth-logout">Cerrar sesión</button>
+      </div>
+      <p class="muted small"> Tu progreso sigue en este navegador. Con tu cuenta iniciada puedes subir y bajar tu respaldo directamente en este servidor, sin URL ni token. Solo tú puedes verlo, y nada se envía automáticamente.</p>
+      <div class="row wrap"><button class="btn small primary" data-action="account-backup-push">⬆ Subir mi cuenta al servidor</button><button class="btn small" data-action="account-backup-pull">⬇ Bajar mi cuenta del servidor</button></div>
+      <p class="muted tiny">¿Prefieres tu propio Drive, Gist o servidor? Más abajo puedes configurar tu nube propia (opcional).</p>
+    </div>`;
+  }
+  if (!info.enabled) {
+    return `<div class="panel"><h2>🔑 Cuenta en la nube</h2><p class="muted small">El servidor tiene desactivadas las cuentas. Puedes seguir estudiando sin registrarte y usar tu respaldo manual con URL y token.</p></div>`;
+  }
+  const providers = (info.providers || []).map((provider) => {
+    const meta = AUTH_META[provider.id] || { icon: '◈', name: provider.name };
+    return provider.configured
+      ? `<a class="btn small" href="/api/auth/${provider.id}">${meta.icon} ${meta.name}</a>`
+      : `<span class="btn small ghost" title="Configura ${meta.name} en el servidor" aria-disabled="true">${meta.icon} ${meta.name} · no configurado</span>`;
+  }).join('');
+  return `<div class="panel stack">
+    <div class="panel-title"><h2>🔑 Entra con tu cuenta</h2><span class="muted small">opcional</span></div>
+    <p class="muted small">No necesitas cuenta para estudiar. Si quieres acceder desde otro dispositivo, entra con tu correo o con Google, Microsoft o GitHub. No hay registro obligatorio, suscripción ni telemetría.</p>
+    <div class="row wrap">${providers}</div>
+    ${info.email ? `<div class="grid cols-2" style="margin-top:14px">
+      <form class="panel stack compact" data-form="auth-login">
+        <span class="eyebrow">Ya tengo cuenta</span>
+        <label class="field">Correo<input name="email" type="email" required autocomplete="email" /></label>
+        <label class="field">Contraseña<input name="password" type="password" required autocomplete="current-password" /></label>
+        <button class="btn small primary" type="submit">Entrar</button>
+      </form>
+      <form class="panel stack compact" data-form="auth-register">
+        <span class="eyebrow">Crear cuenta</span>
+        <label class="field">Nombre<input name="name" maxlength="60" placeholder="Tu nombre" /></label>
+        <label class="field">Correo<input name="email" type="email" required autocomplete="email" /></label>
+        <label class="field">Contraseña<input name="password" type="password" minlength="8" required autocomplete="new-password" /></label>
+        <button class="btn small" type="submit">Crear cuenta</button>
+      </form>
+    </div>` : ''}
+    <p class="muted tiny">Las cuentas viven en este servidor auto-hospedado. Tus datos de estudio siguen en tu navegador hasta que tú pulses <strong>Subir ahora</strong>.</p>
+  </div>`;
+}
+
 views.cuenta = () => {
   const p = profile();
   if (!p) return '<div class="panel empty"><h3>No hay cuenta activa</h3></div>';
@@ -850,7 +908,7 @@ views.cuenta = () => {
         </div>
         <label class="field">Tono del tutor<select name="tone">${TONES.map(([v, l]) => `<option value="${v}" ${p.tone === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
         <label class="checkbox"><input type="checkbox" name="calm" ${p.calm ? 'checked' : ''} /> Modo sin presión (pasos pequeños, sin prisas)</label>
-        <label class="checkbox"><input type="checkbox" name="avatar3d" ${p.avatar3d !== false ? 'checked' : ''} /> Tutor 3D ligero (desactívalo en equipos lentos)</label>
+        <label class="checkbox"><input type="checkbox" name="avatar3d" ${p.avatar3d !== false ? 'checked' : ''} /> Mostrar tutor ilustrado (desactívalo en equipos lentos)</label>
         <p class="muted small">Sugerencia: sesiones de ${levelInfo().minutes} min para ${esc(levelInfo().label)}.</p>
         <button class="btn primary" type="submit">Guardar mi cuenta</button>
       </form>
@@ -866,7 +924,7 @@ views.cuenta = () => {
       </div>
     </div>
 
-    <div class="panel"><div class="panel-title"><h2>Viste a tu tutor 3D</h2><span class="muted small">Ropa y accesorios se ganan estudiando, nunca se compran</span></div>
+    <div class="panel"><div class="panel-title"><h2>Viste a tu tutor ilustrado</h2><span class="muted small">Ropa y accesorios se ganan estudiando, nunca se compran</span></div>
       <span class="eyebrow">Atuendos</span>
       <div class="shop-grid">${SKINS.map((s) => `<button class="shop-item ${p.skin === s.id ? 'active' : ''}" data-action="select-skin" data-id="${s.id}" ${s.cost > p.points && p.skin !== s.id ? 'disabled' : ''}>
         ${tutor3d('sm', s.id, p.accessory)}<strong>${esc(s.name)}</strong><span class="tiny muted">${esc(s.desc)}</span><span class="pill ${s.cost <= p.points || p.skin === s.id ? 'done' : 'medium'}">${s.cost ? `✦ ${s.cost}` : 'Incluido'}${s.cost > p.points && p.skin !== s.id ? ' 🔒' : ''}</span></button>`).join('')}</div>
@@ -876,9 +934,11 @@ views.cuenta = () => {
       <p class="muted small" style="margin-top:14px">Tu compañero actual: <strong>${esc(skin.name)}</strong> con ${esc(accessory.name)} ${accessory.icon}.</p>
     </div>
 
+    ${cloudAccountPanel()}
+
     <form class="panel stack" data-form="save-cloud">
-      <div class="panel-title"><h2>☁️ Guardado en la nube (opcional)</h2><span class="pill ${cloudReady ? 'done' : 'medium'}">${cloudReady ? 'configurada' : 'sin configurar'}</span></div>
-      <p class="muted small">Tu cuenta sigue siendo local. Solo si tú quieres, puedes subir un respaldo a tu propia URL (por ejemplo un JSON en tu Drive, servidor o Gist) con un token tuyo. Nada se envía automáticamente y no hay telemetría.</p>
+      <div class="panel-title"><h2>☁️ ${auth?.user ? 'Mi nube propia (opcional)' : 'Guardado en la nube (opcional)'}</h2><span class="pill ${cloudReady ? 'done' : 'medium'}">${cloudReady ? 'configurada' : 'sin configurar'}</span></div>
+      <p class="muted small">${auth?.user ? 'Ya puedes subir y bajar tu cuenta con los botones de arriba. Si además quieres usar tu propio JSON en Drive, Gist o servidor, pon aquí su URL y token.' : 'Tu cuenta sigue siendo local. Solo si tú quieres, puedes subir un respaldo a tu propia URL (por ejemplo un JSON en tu Drive, servidor o Gist) con un token tuyo.'} Nada se envía automáticamente y no hay telemetría.</p>
       <div class="grid cols-2">
         <label class="field">URL del respaldo<input name="url" value="${esc(config?.cloud?.url || '')}" placeholder="https://ejemplo.com/zoleva.json" /></label>
         <label class="field">Token (opcional)<input name="token" type="password" value="${esc(config?.cloud?.token || '')}" placeholder="••••••••" /></label>
@@ -887,7 +947,7 @@ views.cuenta = () => {
         <button class="btn small" type="button" data-action="cloud-test">Probar conexión</button>
         <button class="btn small" type="button" data-action="cloud-push">⬆ Subir ahora</button>
         <button class="btn small" type="button" data-action="cloud-pull">⬇ Bajar ahora</button></div>
-      <p class="muted tiny">El token se guarda en <code>.data/config.json</code> de este equipo y se envía como <code>Bearer</code> solo a esa URL. Bajar reemplaza los datos locales: se pedirá confirmación.</p>
+      <p class="muted tiny">El token se guarda en ${auth?.user ? 'tu cuenta del servidor (<code>.data/accounts.json</code>)' : '<code>.data/config.json</code> de este equipo'} y se envía como <code>Bearer</code> solo a esa URL. Bajar reemplaza los datos locales: se pedirá confirmación.</p>
     </form>
 
     <div class="panel"><h2>Insignias</h2><div class="badge-grid">${BADGES.map((b) => `<div class="badge ${p.badges.includes(b.id) ? 'earned' : ''}"><span style="font-size:26px">${p.badges.includes(b.id) ? b.icon : '🔒'}</span><strong>${esc(b.name)}</strong><span class="tiny muted">${esc(b.desc)}</span></div>`).join('')}</div></div>
@@ -1228,6 +1288,31 @@ async function handleAction(action, data) {
         toast(res.ok ? `✓ Conexión correcta: ${res.text}` : `✗ ${res.error}`, !res.ok);
       });
       break;
+    case 'auth-logout':
+      busy(async () => {
+        await api('/api/auth/logout', { method: 'POST', body: '{}' });
+        await refreshStatus();
+        toast('Sesión cerrada. Tu progreso sigue en este navegador.');
+      });
+      break;
+    case 'account-backup-push':
+      busy(async () => {
+        const res = await api('/api/account/backup', {
+          method: 'POST',
+          body: JSON.stringify({ data: cloudPayload() }),
+        });
+        toast(`⬆ Cuenta subida a tu servidor (${Math.round(res.bytes / 1024)} KB).`);
+      });
+      break;
+    case 'account-backup-pull':
+      if (!confirm('¿Bajar tu cuenta del servidor? Esto reemplaza las cuentas y el progreso guardados en este equipo.')) break;
+      busy(async () => {
+        const res = await api('/api/account/backup');
+        if (!res.data) { toast('Todavía no hay una cuenta subida a este servidor.', true); return; }
+        applyCloudData(res.data);
+        toast(`⬇ Cuenta bajada del servidor: ${state.profiles.length} cuenta(s) restaurada(s).`);
+      });
+      break;
     case 'cloud-test':
       busy(async () => {
         const res = await api('/api/cloud/pull', { method: 'POST', body: '{}' });
@@ -1298,6 +1383,26 @@ function startExamTimer() {
 /* ------------------------- Formularios y cambios ------------------------- */
 async function handleForm(form, data) {
   switch (form) {
+    case 'auth-register':
+    case 'auth-login': {
+      const endpoint = form === 'auth-register' ? '/api/auth/register' : '/api/auth/login';
+      await busy(async () => {
+        const res = await api(endpoint, {
+          method: 'POST',
+          body: JSON.stringify({
+            email: data.get('email'),
+            password: data.get('password'),
+            name: data.get('name') || '',
+          }),
+        });
+        await refreshStatus();
+        toast(form === 'auth-register'
+          ? `✓ Cuenta creada para ${res.user.email}. Ya puedes subir tu progreso.`
+          : `✓ Sesión iniciada como ${res.user.email}.`);
+        location.hash = '#/app/cuenta';
+      });
+      break;
+    }
     case 'create-plan':
       await busy(async () => {
         const files = await readFiles(state.ui.pendingPlanFiles || []);
@@ -1572,14 +1677,28 @@ async function handleChange(event) {
 }
 
 /* ------------------------- Arranque ------------------------- */
+function handleAuthReturn() {
+  const params = new URLSearchParams(location.search);
+  if (!params.has('auth')) return;
+  const ok = params.get('auth') === 'ok';
+  const message = params.get('authMessage') || '';
+  history.replaceState(null, '', `${location.pathname}${location.hash || '#/'}`);
+  location.hash = '#/app/cuenta';
+  toast(ok
+    ? '✓ Sesión iniciada. Ya puedes subir o bajar tu cuenta.'
+    : `No se pudo iniciar sesión: ${message || 'inténtalo de nuevo.'}`, !ok);
+}
+
 async function refreshStatus() {
   try {
-    const [s, c] = await Promise.all([api('/api/status'), api('/api/config')]);
+    const [s, c, a] = await Promise.all([api('/api/status'), api('/api/config'), api('/api/auth/status')]);
     status = s;
     config = c;
+    auth = a;
   } catch (error) {
     status = { providers: [], active: 'demo', model: 'demo' };
-    config = { provider: 'demo', model: '', apiKeys: {}, endpoints: {}, cli: {}, chatMode: 'didactic', level: 'bachillerato' };
+    config = { provider: 'demo', model: '', apiKeys: {}, endpoints: {}, cli: {}, chatMode: 'didactic', level: 'bachillerato', cloud: { url: '', token: '' } };
+    auth = { enabled: false, email: false, providers: [], user: null };
     state.ui.toast = { text: `No se pudo conectar con el servidor local: ${error.message}`, error: true };
   }
 }
@@ -1629,6 +1748,7 @@ window.addEventListener('hashchange', render);
 if (!location.hash) location.replace('#/');
 save();
 await refreshStatus();
+handleAuthReturn();
 render();
 startExamTimer();
 setInterval(() => {

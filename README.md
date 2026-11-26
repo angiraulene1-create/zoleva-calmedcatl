@@ -19,7 +19,8 @@ Porque preparar un examen no debería exigir una suscripción, un registro oblig
 - **Tu cuenta es local al empezar: no hay pago, anuncios ni telemetría.**
 - Tus datos se quedan en tu navegador; la configuración de IA y la nube opcional, en tu equipo.
 - Puedes usar **IA local sin internet**, **IA en la nube** o los CLIs que ya tengas.
-- Si quieres guardar tu progreso en la nube, tú pones la URL y el token: nada se sube automáticamente.
+- Si quieres guardar tu progreso en la nube, tú decides cuándo: con tu cuenta se sube a tu servidor, o con tu propia URL y token. Nada se sube automáticamente.
+- Opcionalmente puedes crear una cuenta con **correo, Google, Microsoft o GitHub** en tu propio servidor para entrar desde otro dispositivo; nunca es obligatoria.
 - Si un proveedor falla, el **modo demo** sigue generando material de estudio a partir de tu texto.
 
 ## Funciones
@@ -29,12 +30,12 @@ Porque preparar un examen no debería exigir una suscripción, un registro oblig
 - **Cuentas locales**: varias cuentas en el mismo equipo, cada una con sus cursos, chat, tarjetas y progreso. Sin registro obligatorio ni sincronización automática.
 - **De kínder a doctorado**: kínder, primaria, secundaria, bachillerato, universidad, maestría y doctorado. El nivel ajusta el vocabulario, la extensión de los pasos y la duración sugerida de las sesiones.
 - **Adaptación personal**: edad, estilo de aprendizaje (visual, auditivo, kinestésico, lector o mixto), tono (amable, juguetón o sobrio) y modo sin presión. La adaptación se envía al modelo en cada generación y chat.
-- **Tutor 3D ligero y detallado**: ilustraciones SVG propias de **búho, lobo, águila, zorro y un maestro humano (Tlamatinime)**, con perspective CSS, flotación suave y capas de ropa/accesorios. No usa WebGL, funciona en móviles modestos y puede desactivarse en equipos lentos.
+- **Tutor 2D ilustrado y detallado**: ilustraciones SVG propias de **búho, lobo, águila, zorro y un maestro humano (Tlamatinime)**, dibujadas de forma plana y bonita, con capas de ropa/accesorios. No usa perspectiva, WebGL ni dependencias; funciona en móviles modestos y puede desactivarse en equipos lentos.
 - **Tutor didáctico y menos estresante**: modos **Didáctico**, **Socrático**, **Sin presión**, **Juego**, **Resolver** y **Explicar**. Empieza por lo que ya sabes, divide los pasos y celebra el esfuerzo. Acepta fotos de ejercicios con modelos con visión.
 - **Pausa guiada de respiración** de 4-4-6 y simulacros que pueden hacerse **sin temporizador**: practicar no tiene por qué ser un castigo.
 - **Recompensas internas**: ganas ✦ puntos por estudiar, desbloqueas insignias y cambias de tutor —búho, lobo, águila, zorro o maestro— y de **accesorios** (penacho, gafas, amuleto, capa) y marcos de cuenta. Todo queda en tu equipo; no hay compras, clasificaciones ni competencia.
 - **Foto de cuenta y avatar**: la foto se reduce a 160 px y se guarda solo en el navegador.
-- **Respaldo en la nube opcional**: en **Mi cuenta** puedes poner tu propia URL y token, subir o bajar el respaldo cuando quieras. Sirve para dispositivos que no ejecutan IA local o para cambiar de equipo; nunca es automático.
+- **Cuenta opcional y respaldo en la nube**: entra con correo o con Google/Microsoft/GitHub si quieres, o sigue usando la app sin registrarte. Con sesión, sube o baja tu cuenta directamente en tu servidor; o configura tu propia URL y token. Nunca es automático.
 - **Plan de examen**: fecha, asignatura, prioridades, temas y seguimiento.
 - **Tarjetas de memoria** con programación espaciada tipo SM-2: otra vez / difícil / bien / fácil.
 - **Cuestionarios corregidos** con explicación por respuesta.
@@ -99,7 +100,7 @@ HOST=0.0.0.0 PORT=3000 npm start
 2. Crea un plan con tus apuntes. El tutor y los materiales se adaptan automáticamente a esa cuenta.
 3. Estudia a tu ritmo: usa **Didáctico** o **Sin presión**, haz la pausa de respiración si hace falta, y gana ✦ puntos con cada avance.
 4. Canjea los puntos por atuendos, accesorios o un marco en **Mi cuenta**. Si eres docente, activa el rol y prepara guías, rúbricas y juegos en **Docencia**.
-5. Si quieres, configura tu nube en **Mi cuenta** y pulsa **Subir ahora**. Tu cuenta seguirá funcionando sin red.
+5. Si quieres, entra con tu cuenta en **Mi cuenta** y pulsa **Subir mi cuenta al servidor**, o configura tu propia URL y token y pulsa **Subir ahora**. Tu cuenta seguirá funcionando sin red.
 
 ### IA local con Ollama
 
@@ -122,13 +123,46 @@ El prompt se pasa entre comillas simples de forma segura. Si el comando no usa `
 
 ### Respaldo opcional en la nube
 
-En **Mi cuenta → Guardado en la nube (opcional)** puedes configurar una URL propia y un token. El servidor local solo habla con esa URL cuando pulsas **Probar conexión**, **Subir ahora** o **Bajar ahora**.
+Hay dos formas, ambas manuales y sin sincronización automática:
+
+1. **Con tu cuenta iniciada:** en **Mi cuenta → Tu cuenta en la nube** pulsa **Subir mi cuenta al servidor** o **Bajar mi cuenta del servidor**. El respaldo se guarda en `.data/backups/<id>.json` de tu propio servidor, accesible solo con tu sesión. No necesitas URL ni token.
+2. **Con tu propia nube:** en **Mi cuenta → Guardado en la nube (opcional)** configuras una URL y un token propios. El servidor local solo habla con esa URL cuando pulsas **Probar conexión**, **Subir ahora** o **Bajar ahora**.
 
 - El endpoint debe aceptar `PUT` con JSON (subir) y `GET` (bajar). Un `404` en `GET` significa «todavía no hay respaldo».
 - Si pones token, se envía como `Authorization: Bearer …` solo a esa URL.
-- El token se guarda en `.data/config.json` de este equipo; la interfaz lo muestra enmascarado.
+- Sin sesión, el token se guarda en `.data/config.json` de este equipo; con cuenta iniciada, en `.data/accounts.json`. La interfaz lo muestra enmascarado.
 - Bajar un respaldo pide confirmación porque reemplaza las cuentas locales.
 - El respaldo incluye todas las cuentas, cursos, chat, tarjetas, estadísticas y grupos. Las fotos de cuenta se conservan; las imágenes de ejercicios se omiten para no inflar el archivo.
+
+### Cuentas opcionales (correo, Google, Microsoft y GitHub)
+
+Las cuentas viven en **el mismo servidor Node de la app**: no hay servicio central de terceros, anuncios ni telemetría. Seguir estudiando sin cuenta es siempre posible. Para activarlas:
+
+1. Copia `.env.example` a `.env`.
+2. Si quieres acceso con correo, deja `ZOLEVA_AUTH_EMAIL=true` (valor por defecto).
+3. Para cada proveedor que quieras usar, crea una OAuth App y pega su `client_id` y `client_secret` en `.env`.
+4. Registra estas URLs de redirección, cambiando el dominio por el tuyo:
+
+   ```text
+   http://127.0.0.1:3000/api/auth/callback/google
+   http://127.0.0.1:3000/api/auth/callback/microsoft
+   http://127.0.0.1:3000/api/auth/callback/github
+   ```
+
+5. Si la app se sirve detrás de un proxy o con otro dominio, fija `ZOLEVA_PUBLIC_URL=https://tu-dominio` para que las redirecciones sean correctas.
+6. Reinicia el servidor. En **Mi cuenta → Entra con tu cuenta** aparecerán solo los proveedores configurados.
+
+| Variable | Para qué sirve |
+| --- | --- |
+| `ZOLEVA_AUTH_ENABLED` | Activa o desactiva todas las cuentas (`false` para desactivar). |
+| `ZOLEVA_AUTH_EMAIL` | Activa o desactiva registro/entrada con correo y contraseña. |
+| `ZOLEVA_SESSION_SECRET` | Secreto para firmar sesiones; si se deja vacío se genera una vez. |
+| `ZOLEVA_PUBLIC_URL` | Origen público usado en las redirecciones OAuth. |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Acceso con Google (usa PKCE). |
+| `MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET` | Acceso con Microsoft (usa PKCE; `MICROSOFT_TENANT=common` por defecto). |
+| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | Acceso con GitHub (intercambio en servidor). |
+
+Las contraseñas se guardan con `scrypt` y sal aleatoria; las sesiones son cookies `HttpOnly`, firmadas y con `SameSite=Lax`. Hay un límite de 8 intentos fallidos por correo cada 10 minutos. Los perfiles, proveedores vinculados y la configuración de nube de cada cuenta se guardan en `.data/accounts.json` (permisos `0600`), que está excluido de Git. Al entrar, la configuración de nube del equipo se hereda solo si la cuenta aún no tiene una.
 
 ## Instalar como app (PWA)
 
@@ -138,14 +172,15 @@ En el navegador: **Menú → Instalar aplicación**. En Android e iOS: **Añadir
 
 ```
 zoleva-calmedcatl/
-├── server.js                 servidor HTTP y rutas /api
+├── server.js                 servidor HTTP, rutas /api y cuentas opcionales
 ├── src/
+│   ├── auth.js               contraseñas, sesiones firmadas y OAuth
 │   ├── prompts.js            prompts y normalización de respuestas JSON
 │   ├── providers.js          Ollama, OpenAI-compatible, Gemini, CLIs…
 │   └── demo.js               generador sin IA
 ├── public/
 │   ├── index.html            landing + app
-│   ├── app.js                cuentas, tutor 3D, recompensas, nube, docencia y vistas
+│   ├── app.js                cuentas, tutor 2D, recompensas, nube, docencia y vistas
 │   ├── styles.css            identidad visual obsidiana / jade / oro
 │   ├── sw.js                 service worker
 │   ├── manifest.webmanifest
@@ -154,8 +189,10 @@ zoleva-calmedcatl/
 │   ├── tutors/               ilustraciones SVG de búho, lobo, águila, zorro y maestro
 │   ├── apple-touch-icon.png  icono iOS
 │   └── favicon.ico           icono del navegador
-└── tests/core.test.mjs
+├── tests/core.test.mjs
+└── tests/auth.test.mjs
 ```
+`.data/config.json`, `.data/accounts.json` y `.data/backups/` se crean al arrancar y nunca se versionan.
 
 ## Pruebas
 
@@ -168,8 +205,8 @@ npm test
 GitHub Actions ejecuta las pruebas en Node 18, 20 y 22 en cada push o PR. Para publicar una versión:
 
 ```bash
-git tag v0.4.0
-git push origin v0.4.0
+git tag v0.5.0
+git push origin v0.5.0
 ```
 
 El workflow `release.yml` crea una release con notas generadas automáticamente y tres archivos: código fuente en ZIP, código fuente en TAR.GZ y la PWA lista para desplegar (`-pwa.zip`).
@@ -196,8 +233,8 @@ Los términos náhuatl del glosario y del modo bilingüe provienen del **Breve v
 - La generación no hace streaming token a token: muestra «pensando» y después la respuesta completa.
 - El simulacro corrige automáticamente las objetivas; las desarrolladas muestran la rúbrica y puedes pedirle al tutor que las corrija. El modo sin presión quita el temporizador, pero no cambia la corrección.
 - Los puntos, atuendos, accesorios e insignias son motivación local: no se compran, no se comparan y no afectan a tus notas.
-- El tutor 3D es CSS con perspectiva, no un modelo WebGL: busca ligereza y compatibilidad antes que realismo.
-- No hay sincronización automática: exporta e importa JSON o usa tu propio respaldo en la nube. El progreso docente se arma importando los JSON de cada estudiante.
+- El tutor es una ilustración SVG 2D, no un modelo WebGL: busca ligereza, compatibilidad y un aspecto bonito antes que realismo.
+- No hay sincronización automática: exporta e importa JSON, sube/baja tu cuenta a tu servidor si iniciaste sesión, o usa tu propia nube. El progreso docente se arma importando los JSON de cada estudiante.
 
 ## Licencia
 
