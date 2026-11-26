@@ -77,13 +77,13 @@ const MODES = [
   ['didactic', '🧩 Didáctico'], ['socratic', '🎯 Socrático'], ['calm', '🌿 Sin presión'],
   ['play', '🎲 Juego'], ['solve', '🧮 Resolver'], ['tutor', '💬 Explicar'],
 ];
-// Las skins son atuendos del tutor 3D; los accesorios se compran aparte.
+// Cada tutor es una ilustración detallada: cuatro animales y un maestro humano.
 const SKINS = [
-  { id: 'jade', name: 'Túnica de jade', emoji: '🦉', cost: 0, desc: 'Tu compañero de siempre' },
-  { id: 'obsidiana', name: 'Manto de obsidiana', emoji: '🐺', cost: 30, desc: 'Calma y concentración' },
-  { id: 'oro', name: 'Coraza de oro', emoji: '🦅', cost: 80, desc: 'Para miradas agudas' },
-  { id: 'estelar', name: 'Capa estelar', emoji: '🦊', cost: 150, desc: 'Curioso y veloz' },
-  { id: 'maestro', name: 'Atuendo Tlamatinime', emoji: '🧙', cost: 300, desc: 'El sabio que enseña' },
+  { id: 'jade', name: 'Búho de jade', emoji: '🦉', art: 'owl', cost: 0, desc: 'Sabio y tranquilo, siempre contigo' },
+  { id: 'obsidiana', name: 'Lobo de obsidiana', emoji: '🐺', art: 'wolf', cost: 30, desc: 'Calma y concentración' },
+  { id: 'oro', name: 'Águila de oro', emoji: '🦅', art: 'eagle', cost: 80, desc: 'Mirada aguda para temas difíciles' },
+  { id: 'estelar', name: 'Zorro estelar', emoji: '🦊', art: 'fox', cost: 150, desc: 'Curioso, veloz y amable' },
+  { id: 'maestro', name: 'Tlamatinime', emoji: '🧙', art: 'tlamatinime', cost: 300, desc: 'El maestro humano que te guía' },
 ];
 const ACCESSORIES = [
   { id: 'none', name: 'Sin accesorio', icon: '—', cost: 0, desc: 'Look clásico' },
@@ -113,20 +113,19 @@ const kidMode = () => ['kinder', 'primaria'].includes(profile()?.level) || (Numb
 const tutorEmoji = () => SKINS.find((s) => s.id === profile()?.skin)?.emoji || '🦉';
 const tutorAccessory = () => ACCESSORIES.find((a) => a.id === profile()?.accessory) || ACCESSORIES[0];
 
-/** Tutor 3D ligero: capas CSS, sin WebGL ni dependencias. */
+/** Tutor 3D ligero: ilustración SVG con capas CSS, sin WebGL ni dependencias. */
 function tutor3d(size = 'sm', skinId = profile()?.skin || 'jade', accessoryId = profile()?.accessory || 'none') {
   const skin = SKINS.find((s) => s.id === skinId) || SKINS[0];
   const accessory = ACCESSORIES.find((a) => a.id === accessoryId) || ACCESSORIES[0];
   return `<span class="tutor3d ${size} skin-${esc(skin.id)} acc-${esc(accessory.id)}" role="img" aria-label="${esc(skin.name)} con ${esc(accessory.name)}">
-    <span class="t3d-stage"><span class="t3d-shadow"></span><span class="t3d-body">
+    <span class="t3d-stage">
+      <span class="t3d-shadow"></span>
       <span class="t3d-cape"></span>
-      <span class="t3d-wing left"></span><span class="t3d-wing right"></span>
-      <span class="t3d-torso"><span class="t3d-outfit"></span><span class="t3d-amulet"></span></span>
-      <span class="t3d-head">
-        <span class="t3d-eye left"></span><span class="t3d-eye right"></span>
-        <span class="t3d-beak"></span><span class="t3d-glasses"></span><span class="t3d-crest"></span>
-      </span>
-    </span></span>
+      <img class="t3d-art" src="/tutors/${esc(skin.art)}.svg" alt="" />
+      <span class="t3d-amulet"></span>
+      <span class="t3d-glasses"></span>
+      <span class="t3d-crest"></span>
+    </span>
   </span>`;
 }
 
@@ -423,13 +422,14 @@ function daysUntil(date) {
 function landing() {
   return `<div class="landing">
     <nav class="nav container">
-      <a class="brand" href="#/"><span class="brand-mark">◈</span><span class="brand-name">Zoleva Calmécatl</span></a>
+      <a class="brand" href="#/"><img class="brand-icon" src="/icons/app-icon.svg" alt="" /><span class="brand-name">Zoleva Calmécatl</span></a>
       <div class="nav-links"><a href="#origen">Origen</a><a href="#niveles">Niveles</a><a href="#glosario">Náhuatl</a><a href="#caracteristicas">Funciones</a><a href="#ia">Tu IA</a><a href="#faq">Preguntas</a></div>
       <div class="row"><button class="pill" data-action="toggle-lang">${state.lang === 'nah' ? '◈ Náhuatl' : '◈ Español'}</button><a class="btn primary small" href="#/app">Entrar gratis →</a></div>
     </nav>
 
     <header class="hero container"><div class="hero-grid">
       <div>
+        <img class="hero-wordmark" src="/icons/wordmark.svg" alt="Zoleva Calmécatl" />
         <span class="badge">◈ Del náhuatl: escuela de élite mexica · código abierto</span>
         <h1>${state.lang === 'nah' ? 'Calmecac: <span class="gradient-text">tlamatiliztli para todos.</span>' : 'La escuela de élite mexica, <span class="gradient-text">gratis y en tu bolsillo.</span>'}</h1>
         <p class="lead"><strong>Zoleva Calmécatl</strong> convierte tus apuntes en un plan de examen, lecciones, tarjetas, cuestionarios y simulacros. Funciona con IA local, proveedores en la nube o los CLIs que ya usas. Tu cuenta es local: sin registro obligatorio, sin pago y sin anuncios.</p>
@@ -453,7 +453,7 @@ function landing() {
     </div></header>
 
     <section class="block container" id="origen">
-      <div class="card origen"><div><span class="eyebrow">El nombre</span><h2 style="margin:10px 0">Zoleva Calmécatl</h2><p>Del náhuatl, <strong>escuela de élite mexica</strong>. El calmecac era el lugar donde se formaban los jóvenes de la nobleza: disciplina, memoria, lectura del cielo y dominio de las artes. Aquí recuperamos esa idea —aprender con rigor y sin excusas— y la ponemos al alcance de cualquiera, gratis y con la IA que tú elijas.</p></div><div class="origen-sello" aria-hidden="true">◈</div></div>
+      <div class="card origen"><div><span class="eyebrow">El nombre</span><h2 style="margin:10px 0">Zoleva Calmécatl</h2><p>Del náhuatl, <strong>escuela de élite mexica</strong>. El calmecac era el lugar donde se formaban los jóvenes de la nobleza: disciplina, memoria, lectura del cielo y dominio de las artes. Aquí recuperamos esa idea —aprender con rigor y sin excusas— y la ponemos al alcance de cualquiera, gratis y con la IA que tú elijas.</p></div><div class="origen-sello origen-logo" aria-hidden="true"><img src="/icons/app-icon-detail.svg" alt="" /></div></div>
     </section>
 
     <section class="block container" id="glosario">
@@ -535,7 +535,7 @@ function appShell(view) {
   const ready = active?.ready;
   return `<div class="app">
     <aside class="sidebar">
-      <a class="brand" href="#/"><span class="brand-mark">◈</span><span class="brand-name">Zoleva</span></a>
+      <a class="brand" href="#/"><img class="sidebar-wordmark" src="/icons/wordmark-alt.svg" alt="Zoleva Calmécatl" /></a>
       <nav>${navItems().map((item) => {
         const term = nah(item.id);
         return `<a class="nav-item ${view === item.id ? 'active' : ''}" href="#/app/${item.id}"><span class="ic">${item.icon}</span><span>${item.label}${term ? `<span class="nah-term">${esc(term[0])}</span>` : ''}</span></a>`;
@@ -832,7 +832,7 @@ views.cuenta = () => {
   return `<div class="stack">
     <div class="panel profile-banner">
       <span class="avatar xl frame-${esc(p.frame || 'none')}">${p.photo ? `<img src="${esc(p.photo)}" alt="Tu foto de cuenta" />` : esc(p.avatar)}</span>
-      <div class="grow"><span class="eyebrow">Mi cuenta local</span><h2 style="margin:6px 0">${esc(p.name)}</h2>
+      <div class="grow"><img class="account-emblem" src="/icons/app-icon-detail.svg" alt="" /><span class="eyebrow">Mi cuenta local</span><h2 style="margin:6px 0">${esc(p.name)}</h2>
         <p class="muted small">${esc(levelInfo().label)} · ${p.role === 'teacher' ? 'Docente' : 'Estudiante'} · ${p.badges.length} insignias</p></div>
       <div class="center">${tutorFaceHtml('md')}<div class="tiny muted">${esc(skin.name)} · ${esc(accessory.name)}</div></div>
       <div class="center"><div style="font-family:'Cinzel';font-size:30px;color:var(--violet-2)">✦ ${p.points}</div><div class="muted tiny">puntos ganados</div></div>

@@ -1,7 +1,10 @@
-const CACHE = 'zoleva-v4';
+const CACHE = 'zoleva-v5';
 const CORE = [
-  '/', '/index.html', '/styles.css', '/app.js', '/icon.svg', '/manifest.webmanifest',
-  '/favicon.ico', '/apple-touch-icon.png', '/icons/icon-192.png', '/icons/icon-512.png',
+  '/', '/index.html', '/styles.css', '/app.js', '/manifest.webmanifest',
+  '/favicon.ico', '/apple-touch-icon.png', '/icon.svg',
+  '/icons/app-icon.svg', '/icons/app-icon-detail.svg', '/icons/wordmark.svg', '/icons/wordmark-alt.svg',
+  '/icons/icon-192.png', '/icons/icon-512.png',
+  '/tutors/owl.svg', '/tutors/wolf.svg', '/tutors/eagle.svg', '/tutors/fox.svg', '/tutors/tlamatinime.svg',
 ];
 
 self.addEventListener('install', (event) => {

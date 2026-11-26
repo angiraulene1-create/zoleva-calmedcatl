@@ -69,6 +69,12 @@ h1, h2, h3, h4, .brand-name { font-family: 'Cinzel', 'Inter', sans-serif; letter
   font-size: 19px; font-weight: 700;
 }
 .brand-name { font-size: 17px; letter-spacing: -0.02em; }
+.brand-icon { width: 36px; height: 36px; border-radius: 10px; box-shadow: 0 8px 24px rgba(201,162,74,.28); }
+.sidebar-wordmark { display: block; width: 154px; height: auto; max-width: 100%; }
+.hero-wordmark { display: block; width: min(430px, 100%); height: auto; margin-bottom: 26px; filter: drop-shadow(0 12px 24px rgba(0,0,0,.4)); }
+.account-emblem { display: block; width: 52px; height: 52px; border-radius: 15px; margin-bottom: 10px; }
+.origen-logo { transform: none; border-radius: 26px; padding: 8px; }
+.origen-logo img { width: 100%; height: 100%; border-radius: 18px; }
 .landing::after {
   content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none;
   background: repeating-linear-gradient(135deg, rgba(227, 189, 99, 0.035) 0 1px, transparent 1px 28px);
@@ -351,9 +357,8 @@ button.pill:hover { border-color: var(--violet); color: var(--text); }
 .tutor-emoji.md { font-size: 34px; width: 52px; height: 52px; }
 .tutor-emoji.lg { font-size: 48px; width: 72px; height: 72px; }
 
-/* Tutor 3D ligero: capas CSS con perspectiva, sin WebGL ni dependencias. */
+/* Tutor 3D ligero: ilustraciones SVG detalladas con profundidad CSS, sin WebGL. */
 .tutor3d {
-  --t3d-main: #3fcf9e; --t3d-dark: #127f66; --t3d-light: #b6f5dc;
   display: inline-grid; place-items: center; flex: none; vertical-align: middle;
   width: 36px; height: 36px; perspective: 420px;
 }
@@ -363,41 +368,18 @@ button.pill:hover { border-color: var(--violet); color: var(--text); }
 .tutor3d.lg { width: 76px; height: 76px; }
 .tutor3d.xl { width: 104px; height: 104px; }
 .t3d-stage { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; animation: t3d-float 4.5s ease-in-out infinite; }
+.t3d-art {
+  position: absolute; inset: 0; z-index: 2; width: 100%; height: 100%; object-fit: contain;
+  transform: translateZ(10px); filter: drop-shadow(0 6px 8px rgba(0,0,0,.35));
+}
+.tutor3d.skin-oro .t3d-art { filter: drop-shadow(0 0 7px rgba(227,189,99,.3)) drop-shadow(0 6px 8px rgba(0,0,0,.35)); }
+.tutor3d.skin-estelar .t3d-art { filter: drop-shadow(0 0 8px rgba(165,216,255,.35)) drop-shadow(0 6px 8px rgba(0,0,0,.35)); }
 .t3d-shadow { position: absolute; bottom: 3%; left: 18%; right: 18%; height: 7%; border-radius: 50%; background: rgba(0,0,0,.5); filter: blur(2px); }
-.t3d-body { position: absolute; inset: 4% 12% 6%; transform-style: preserve-3d; transform: rotateY(-10deg); }
-.t3d-torso {
-  position: absolute; left: 17%; right: 17%; bottom: 10%; height: 42%;
-  border-radius: 44% 44% 30% 30%;
-  background: linear-gradient(145deg, var(--t3d-light), var(--t3d-main) 48%, var(--t3d-dark));
-  box-shadow: inset -4px -5px 8px rgba(0,0,0,.38), inset 3px 3px 7px rgba(255,255,255,.24), 0 6px 12px rgba(0,0,0,.28);
-  transform: rotateY(14deg) translateZ(4px);
-}
-.t3d-outfit { position: absolute; inset: 24% 10% 6%; border-radius: 42% 42% 26% 26%; background: rgba(10,20,16,.3); }
-.t3d-head {
-  position: absolute; left: 15%; right: 15%; top: 1%; height: 44%;
-  border-radius: 48% 48% 42% 42%;
-  background: radial-gradient(circle at 35% 25%, var(--t3d-light), transparent 45%), linear-gradient(145deg, var(--t3d-main), var(--t3d-dark));
-  box-shadow: inset -4px -4px 8px rgba(0,0,0,.35), inset 3px 3px 8px rgba(255,255,255,.22), 0 5px 12px rgba(0,0,0,.3);
-  transform: rotateY(10deg) translateZ(9px);
-}
-.t3d-eye { position: absolute; top: 42%; width: 17%; height: 17%; border-radius: 50%; background: #0a1210; box-shadow: inset 1px 1px 2px rgba(255,255,255,.45); }
-.t3d-eye.left { left: 22%; } .t3d-eye.right { right: 22%; }
-.t3d-beak { position: absolute; top: 57%; left: 42%; width: 16%; height: 14%; background: #e3bd63; clip-path: polygon(0 0, 100% 0, 50% 100%); transform: translateZ(5px); }
-.t3d-wing {
-  position: absolute; top: 32%; width: 25%; height: 38%; border-radius: 60% 30% 55% 35%;
-  background: linear-gradient(150deg, var(--t3d-light), var(--t3d-dark));
-  box-shadow: inset -3px -3px 6px rgba(0,0,0,.3);
-}
-.t3d-wing.left { left: -5%; transform: rotateY(58deg) rotateZ(13deg); }
-.t3d-wing.right { right: -5%; transform: rotateY(-58deg) rotateZ(-13deg); }
-.t3d-cape { display: none; position: absolute; left: 4%; right: 4%; top: 19%; bottom: 4%; border-radius: 45% 45% 20% 20%; background: linear-gradient(160deg, rgba(139,92,246,.75), rgba(30,20,60,.8)); transform: translateZ(-8px) rotateY(-6deg); }
-.t3d-glasses { display: none; position: absolute; left: 14%; right: 14%; top: 39%; height: 15%; border: 2px solid #f3d98a; border-radius: 40%; box-shadow: 0 0 5px rgba(243,217,138,.5); }
-.t3d-crest { display: none; position: absolute; left: 29%; right: 29%; top: -16%; height: 24%; background: linear-gradient(160deg, #f3d98a, #c9a24a 55%, #3fcf9e); clip-path: polygon(50% 100%, 18% 0, 44% 38%, 58% 4%, 82% 45%); }
-.t3d-amulet { display: none; position: absolute; left: 43%; bottom: 12%; width: 14%; height: 12%; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #b6f5dc, #127f66); box-shadow: 0 0 6px rgba(63,207,158,.7); }
-.tutor3d.skin-obsidiana { --t3d-main: #77808c; --t3d-dark: #151c22; --t3d-light: #c7d0d8; }
-.tutor3d.skin-oro { --t3d-main: #e3bd63; --t3d-dark: #8c6b28; --t3d-light: #ffeab5; }
-.tutor3d.skin-estelar { --t3d-main: #a5d8ff; --t3d-dark: #5b3fa6; --t3d-light: #e0f2ff; }
-.tutor3d.skin-maestro { --t3d-main: #c9a24a; --t3d-dark: #127f66; --t3d-light: #ffe6a3; }
+.t3d-cape { display: none; position: absolute; z-index: 1; left: 14%; right: 14%; top: 46%; bottom: 8%; border-radius: 45% 45% 20% 20%; background: linear-gradient(160deg, rgba(139,92,246,.8), rgba(30,20,60,.85)); transform: translateZ(-6px) rotateY(-6deg); }
+.t3d-glasses { display: none; position: absolute; z-index: 3; left: 25%; right: 25%; top: 42%; height: 12%; border: 2px solid #f3d98a; border-radius: 45%; box-shadow: 0 0 5px rgba(243,217,138,.5); transform: translateZ(14px); }
+.t3d-glasses::after { content: ''; position: absolute; left: 47%; right: 47%; top: 45%; height: 2px; background: #f3d98a; }
+.t3d-crest { display: none; position: absolute; z-index: 3; left: 38%; right: 38%; top: 1%; height: 20%; background: linear-gradient(160deg, #f3d98a, #c9a24a 55%, #3fcf9e); clip-path: polygon(50% 100%, 18% 0, 44% 38%, 58% 4%, 82% 45%); transform: translateZ(14px); }
+.t3d-amulet { display: none; position: absolute; z-index: 3; left: 46%; bottom: 27%; width: 8%; height: 8%; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #b6f5dc, #127f66); box-shadow: 0 0 6px rgba(63,207,158,.7); transform: translateZ(14px); }
 .tutor3d.acc-capa .t3d-cape, .tutor3d.acc-gafas .t3d-glasses,
 .tutor3d.acc-penacho .t3d-crest, .tutor3d.acc-amuleto .t3d-amulet { display: block; }
 @keyframes t3d-float { 0%,100% { transform: translateY(0) rotateY(-5deg); } 50% { transform: translateY(-4%) rotateY(5deg); } }

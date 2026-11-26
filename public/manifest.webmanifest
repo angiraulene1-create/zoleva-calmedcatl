@@ -1,7 +1,7 @@
 {
   "name": "Zoleva Calmécatl · Escuela de élite mexica",
   "short_name": "Zoleva",
-  "description": "Estudio adaptado de kínder a doctorado: tutor 3D amable, tarjetas, quiz, recompensas, respaldo opcional en la nube y materiales para docentes con IA local o en la nube.",
+  "description": "Estudio adaptado de kínder a doctorado: tutores detallados de animales y maestro, tarjetas, quiz, recompensas, respaldo opcional en la nube y materiales para docentes con IA local o en la nube.",
   "lang": "es",
   "start_url": "/#/app",
   "scope": "/",
@@ -11,6 +11,6 @@
   "icons": [
     { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
-    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+    { "src": "/icons/app-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
   ]
 }

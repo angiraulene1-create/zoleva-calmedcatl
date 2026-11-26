@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="Águila de oro">
+  <defs>
+    <linearGradient id="feather" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f6dfa2"/><stop offset=".45" stop-color="#c99a3d"/><stop offset="1" stop-color="#6c4816"/></linearGradient>
+    <linearGradient id="wing" x1="0" y1="0" x2=".9" y2="1"><stop stop-color="#f0cf82"/><stop offset=".55" stop-color="#9a6d24"/><stop offset="1" stop-color="#4b320f"/></linearGradient>
+    <linearGradient id="beak" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#ffe9a8"/><stop offset="1" stop-color="#c17a17"/></linearGradient>
+  </defs>
+  <ellipse cx="100" cy="190" rx="48" ry="7" fill="#000" opacity=".36"/>
+  <path d="M82 146 68 180l16-7 16 8 16-8 16 7-14-34z" fill="#6c4816"/>
+  <path d="M44 80C22 92 14 124 25 148c7 15 20 16 29 6-10-20-12-44-4-62z" fill="url(#wing)"/>
+  <path d="M156 80c22 12 30 44 19 68-7 15-20 16-29 6 10-20 12-44 4-62z" fill="url(#wing)"/>
+  <path d="M32 104c-4 14-2 27 5 37M168 104c4 14 2 27-5 37" stroke="#ffe9a8" stroke-width="2" opacity=".45" fill="none"/>
+  <path d="M100 52c-26 0-42 22-42 52 0 34 18 61 42 61s42-27 42-61c0-30-16-52-42-52z" fill="url(#feather)" stroke="#ffe9a8" stroke-opacity=".4" stroke-width="2"/>
+  <path d="M70 68c-8 8-12 18-12 30 8-8 16-12 24-12zM130 68c8 8 12 18 12 30-8-8-16-12-24-12z" fill="#f6dfa2" opacity=".7"/>
+  <path d="M100 64c-22 0-36 16-36 38 0 20 15 33 36 33s36-13 36-33c0-22-14-38-36-38z" fill="#e3bd63"/>
+  <path d="M100 76c-17 0-28 13-28 29 0 15 12 25 28 25s28-10 28-25c0-16-11-29-28-29z" fill="#f3d98a"/>
+  <path d="M73 90c6-6 13-8 19-6M127 90c-6-6-13-8-19-6" stroke="#6c4816" stroke-width="4" stroke-linecap="round" fill="none"/>
+  <ellipse cx="85" cy="98" rx="7" ry="6" fill="#fff5d6"/>
+  <ellipse cx="115" cy="98" rx="7" ry="6" fill="#fff5d6"/>
+  <circle cx="85" cy="98" r="4" fill="#0a0d0c"/>
+  <circle cx="115" cy="98" r="4" fill="#0a0d0c"/>
+  <circle cx="83" cy="96" r="1.5" fill="#fff"/>
+  <circle cx="113" cy="96" r="1.5" fill="#fff"/>
+  <path d="M92 108c2-4 14-4 16 0 0 8-4 14-8 18-4-4-8-10-8-18z" fill="url(#beak)" stroke="#7a4a10" stroke-width="1.2"/>
+  <path d="M96 110h8" stroke="#7a4a10" stroke-width="1.5"/>
+  <path d="M84 145c5 8 11 12 16 12s11-4 16-12M88 158c4 5 8 7 12 7s8-2 12-7" stroke="#ffe9a8" stroke-opacity=".45" stroke-width="2" fill="none"/>
+  <path d="M84 170h12l-3 12H87zM104 170h12l-3 12h-6z" fill="#c17a17"/>
+  <path d="m100 135 7 7-7 7-7-7z" fill="#3fcf9e" stroke="#6c4816" stroke-width="1.5"/>
+</svg>

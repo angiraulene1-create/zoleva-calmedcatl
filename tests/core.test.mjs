@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import { demoGenerate, demoChat } from '../src/demo.js';
 import {
   buildGenerateMessages, buildChatMessages, normalizeGenerated, parseModelJson,
@@ -71,6 +72,19 @@ test('los proveedores en nube están señalados para equipos ligeros', () => {
   assert.match(openrouter.note, /Nube/i);
   assert.match(gemini.note, /Nube/i);
   assert.equal(ollama.kind, 'local');
+});
+
+test('los logos aportados y las ilustraciones de tutores están disponibles', async () => {
+  const assets = [
+    '../public/icons/app-icon.svg', '../public/icons/app-icon-detail.svg',
+    '../public/icons/wordmark.svg', '../public/icons/wordmark-alt.svg',
+    '../public/tutors/owl.svg', '../public/tutors/wolf.svg', '../public/tutors/eagle.svg',
+    '../public/tutors/fox.svg', '../public/tutors/tlamatinime.svg',
+  ];
+  for (const asset of assets) {
+    const svg = await readFile(new URL(asset, import.meta.url), 'utf8');
+    assert.match(svg, /<svg[\s>]/, `${asset} no es SVG`);
+  }
 });
 
 test('los siete niveles cubren desde kínder hasta doctorado', () => {

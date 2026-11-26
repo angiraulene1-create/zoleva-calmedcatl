@@ -29,10 +29,10 @@ Porque preparar un examen no debería exigir una suscripción, un registro oblig
 - **Cuentas locales**: varias cuentas en el mismo equipo, cada una con sus cursos, chat, tarjetas y progreso. Sin registro obligatorio ni sincronización automática.
 - **De kínder a doctorado**: kínder, primaria, secundaria, bachillerato, universidad, maestría y doctorado. El nivel ajusta el vocabulario, la extensión de los pasos y la duración sugerida de las sesiones.
 - **Adaptación personal**: edad, estilo de aprendizaje (visual, auditivo, kinestésico, lector o mixto), tono (amable, juguetón o sobrio) y modo sin presión. La adaptación se envía al modelo en cada generación y chat.
-- **Tutor 3D ligero**: avatar con perspectiva CSS, flotación suave y capas de ropa/accesorios. No usa WebGL, funciona en móviles modestos y puede desactivarse en equipos lentos.
+- **Tutor 3D ligero y detallado**: ilustraciones SVG propias de **búho, lobo, águila, zorro y un maestro humano (Tlamatinime)**, con perspective CSS, flotación suave y capas de ropa/accesorios. No usa WebGL, funciona en móviles modestos y puede desactivarse en equipos lentos.
 - **Tutor didáctico y menos estresante**: modos **Didáctico**, **Socrático**, **Sin presión**, **Juego**, **Resolver** y **Explicar**. Empieza por lo que ya sabes, divide los pasos y celebra el esfuerzo. Acepta fotos de ejercicios con modelos con visión.
 - **Pausa guiada de respiración** de 4-4-6 y simulacros que pueden hacerse **sin temporizador**: practicar no tiene por qué ser un castigo.
-- **Recompensas internas**: ganas ✦ puntos por estudiar, desbloqueas insignias y vistes al tutor con **atuendos** (túnica de jade, manto de obsidiana, coraza de oro, capa estelar y atuendo Tlamatinime), **accesorios** (penacho, gafas, amuleto, capa) y marcos de cuenta. Todo queda en tu equipo; no hay compras, clasificaciones ni competencia.
+- **Recompensas internas**: ganas ✦ puntos por estudiar, desbloqueas insignias y cambias de tutor —búho, lobo, águila, zorro o maestro— y de **accesorios** (penacho, gafas, amuleto, capa) y marcos de cuenta. Todo queda en tu equipo; no hay compras, clasificaciones ni competencia.
 - **Foto de cuenta y avatar**: la foto se reduce a 160 px y se guarda solo en el navegador.
 - **Respaldo en la nube opcional**: en **Mi cuenta** puedes poner tu propia URL y token, subir o bajar el respaldo cuando quieras. Sirve para dispositivos que no ejecutan IA local o para cambiar de equipo; nunca es automático.
 - **Plan de examen**: fecha, asignatura, prioridades, temas y seguimiento.
@@ -149,8 +149,9 @@ zoleva-calmedcatl/
 │   ├── styles.css            identidad visual obsidiana / jade / oro
 │   ├── sw.js                 service worker
 │   ├── manifest.webmanifest
-│   ├── icon.svg              greca mexica (vectorial)
-│   ├── icons/                PNG 16, 32, 48, 180, 192 y 512 px
+│   ├── icon.svg              logo mark oficial (copia)
+│   ├── icons/                logo, wordmarks, PNG 16/32/48/180/192/512 y SVG originales aportados
+│   ├── tutors/               ilustraciones SVG de búho, lobo, águila, zorro y maestro
 │   ├── apple-touch-icon.png  icono iOS
 │   └── favicon.ico           icono del navegador
 └── tests/core.test.mjs
@@ -167,8 +168,8 @@ npm test
 GitHub Actions ejecuta las pruebas en Node 18, 20 y 22 en cada push o PR. Para publicar una versión:
 
 ```bash
-git tag v0.3.0
-git push origin v0.3.0
+git tag v0.4.0
+git push origin v0.4.0
 ```
 
 El workflow `release.yml` crea una release con notas generadas automáticamente y tres archivos: código fuente en ZIP, código fuente en TAR.GZ y la PWA lista para desplegar (`-pwa.zip`).
@@ -184,7 +185,7 @@ Las ideas bienvenidas: lectura de PDFs, más proveedores, traducción al náhuat
 
 ## Identidad visual
 
-Obsidiana como fondo, **jade** para el dominio del conocimiento y **oro** para la disciplina y la excelencia; la greca escalonada del emblema evoca los templos y el calmecac. Tipografía: *Cinzel* para los títulos e *Inter* para el texto.
+Obsidiana como fondo, **jade** para el dominio del conocimiento y **oro** para la disciplina y la excelencia. El logo mark y los wordmarks aportados se usan en favicon, PWA, encabezados y panel de cuenta; los tutores son ilustraciones SVG detalladas de animales y de un maestro, animadas con perspectiva CSS. Tipografía: *Cinzel* para los títulos e *Inter* para el texto.
 
 Los términos náhuatl del glosario y del modo bilingüe provienen del **Breve vocabulario filosófico náhuatl** del Instituto de Investigaciones Históricas de la UNAM y del **Wired Humanities Nahuatl Dictionary**.
 
