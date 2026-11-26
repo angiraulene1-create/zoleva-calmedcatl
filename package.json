@@ -1,0 +1,16 @@
+{
+  "name": "estudio-libre",
+  "version": "0.1.0",
+  "description": "Tutor de estudio libre, local-first y con IA intercambiable",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node --test tests/*.test.mjs"
+  }
+}
