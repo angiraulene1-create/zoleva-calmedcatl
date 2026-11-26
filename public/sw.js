@@ -1,6 +1,6 @@
-const CACHE = 'zoleva-v7';
+const CACHE = 'zoleva-v8';
 const CORE = [
-  '/', '/index.html', '/styles.css', '/app.js', '/manifest.webmanifest',
+  '/', '/index.html', '/styles.css', '/app.js', '/schedule.js', '/manifest.webmanifest',
   '/favicon.ico', '/apple-touch-icon.png', '/icon.svg',
   '/icons/app-icon.svg', '/icons/app-icon-detail.svg', '/icons/wordmark.svg', '/icons/wordmark-alt.svg',
   '/icons/icon-192.png', '/icons/icon-512.png',

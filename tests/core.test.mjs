@@ -104,6 +104,21 @@ test('la interfaz guía a quien empieza con tres pasos y ayuda contextual', asyn
   assert.match(css, /\.help-overlay\s*\{/);
 });
 
+test('el plan se reparte en un calendario diario con «Lo de hoy»', async () => {
+  const app = await readFile(new URL('../public/app.js', import.meta.url), 'utf8');
+  const css = await readFile(new URL('../public/styles.css', import.meta.url), 'utf8');
+  const sw = await readFile(new URL('../public/sw.js', import.meta.url), 'utf8');
+  assert.match(app, /import \{ buildStudySchedule/);
+  assert.match(app, /function rebuildSchedule\(c\)/);
+  assert.match(app, /function todayPanel\(c\)/);
+  assert.match(app, /function schedulePanel\(c\)/);
+  assert.match(app, /data-action="build-schedule"/);
+  assert.match(app, /data-action="toggle-session"/);
+  assert.match(app, /data-action="toggle-all-days"/);
+  assert.match(css, /\.schedule-days\s*\{/);
+  assert.match(sw, /'\/schedule\.js'/);
+});
+
 test('los siete niveles cubren desde kínder hasta doctorado', () => {
   const keys = Object.keys(LEVELS);
   assert.equal(keys.length, 7);

@@ -430,4 +430,14 @@ button.pill:hover { border-color: var(--violet); color: var(--text); }
 .help-overlay { position: fixed; inset: 0; z-index: 130; display: grid; place-items: center; padding: 20px; background: rgba(4,8,6,.88); backdrop-filter: blur(8px); }
 .help-box { width: min(640px, 100%); max-height: min(86vh, 760px); overflow: auto; padding: 24px; border-radius: 18px; border: 1px solid rgba(227,189,99,.3); background: linear-gradient(160deg, #121a17, #0b100e); box-shadow: 0 24px 80px rgba(0,0,0,.6); }
 @media (max-width: 640px) { .onboard-step { flex-wrap: wrap; } .onboard-step .grow { flex-basis: calc(100% - 46px); } }
+
+/* Calendario de estudio: cada día y cada sesión se entienden de un vistazo */
+.schedule-days { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
+.schedule-day { padding: 12px; border: 1px solid var(--line); border-radius: 14px; background: rgba(255,255,255,.02); }
+.schedule-day.today { border-color: rgba(227,189,99,.45); background: rgba(227,189,99,.06); }
+.schedule-day > .row { margin-bottom: 6px; }
+.session { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-top: 1px solid var(--line); font-size: 13px; }
+.session.done .grow { text-decoration: line-through; color: var(--muted); }
+.session-check { flex: 0 0 22px; height: 22px; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--line); background: transparent; color: var(--green); font-weight: 700; cursor: pointer; }
+.session.done .session-check { border-color: rgba(63,207,158,.5); background: rgba(63,207,158,.14); }
 input[type="radio"]:focus-visible, button:focus-visible, a:focus-visible { outline: 2px solid var(--violet-2); outline-offset: 3px; }

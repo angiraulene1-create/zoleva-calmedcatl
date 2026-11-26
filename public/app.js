@@ -1,4 +1,6 @@
 // Zoleva · aplicación web PWA. Sin frameworks, sin build, sin dependencias.
+import { buildStudySchedule, localDateKey, sessionsForDate, scheduleSummary } from './schedule.js';
+
 const STORAGE_KEY = 'estudio-libre-v1';
 const $ = (selector) => document.querySelector(selector);
 const uid = () => Math.random().toString(36).slice(2, 10);
@@ -26,7 +28,7 @@ const navItems = () => NAV.filter((n) => n.id !== 'docente' || profile()?.role =
 const TITLES = {
   home: ['Tu espacio de estudio', 'Empieza por el paso 1. Puedes ir a tu ritmo y sin presión.'],
   tutor: ['Preguntar al tutor', 'Escribe lo que no entiendas: te da pistas, no respuestas.'],
-  plan: ['Mi plan', 'Tus apuntes se convierten en pasos pequeños hasta tu examen.'],
+  plan: ['Mi plan', 'Tus apuntes se convierten en un calendario con pasos pequeños hasta tu examen.'],
   cards: ['Tarjetas de memoria', 'Una pregunta por lado. Vuelven cuando conviene repasarlas.'],
   quiz: ['Practicar', 'Preguntas cortas con explicación. Equivocarte también ayuda.'],
   exam: ['Examen de práctica', 'Practica como si fuera el examen real, o sin temporizador.'],
@@ -182,7 +184,7 @@ function freshState() {
     ui: {
       busy: false, toast: null, draft: '', images: [], cardSession: null, quiz: null,
       exam: null, models: [], sample: false, noPressure: false, breathing: null, help: false,
-      activeGroup: null, pendingPlanFiles: [], pendingMaterialFiles: [],
+      showAllDays: false, activeGroup: null, pendingPlanFiles: [], pendingMaterialFiles: [],
     },
   };
 }
@@ -247,7 +249,7 @@ function cloudPayload() {
   if (active) active.save = pickProfileData(state);
   return {
     app: 'zoleva-calmedcatl',
-    version: 4,
+    version: 5,
     exportedAt: new Date().toISOString(),
     owner: auth?.user ? { id: auth.user.id, email: auth.user.email, provider: auth.user.provider } : null,
     activeProfile: state.activeProfile,
@@ -423,6 +425,93 @@ function daysUntil(date) {
   return Number.isFinite(diff) ? diff : null;
 }
 
+/* ------------------------- Calendario de estudio ------------------------- */
+function dayLabel(day) {
+  if (day === localDateKey()) return 'Hoy';
+  const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
+  if (day === localDateKey(tomorrow)) return 'Mañana';
+  return new Date(`${day}T12:00:00`).toLocaleDateString('es', { weekday: 'short', day: 'numeric', month: 'short' });
+}
+
+function syncTopicFromSchedule(c, topicId) {
+  const topic = c?.plan?.topics?.find((t) => t.id === topicId);
+  const sessions = (c?.schedule?.sessions || []).filter((s) => s.topicId === topicId);
+  if (!topic || !sessions.length) return false;
+  const wasDone = topic.status === 'done';
+  const allDone = sessions.every((s) => s.done);
+  topic.status = allDone ? 'done' : sessions.some((s) => s.done) ? 'doing' : 'todo';
+  return !wasDone && topic.status === 'done';
+}
+
+/** Reparte de nuevo los temas conservando las sesiones ya terminadas. */
+function rebuildSchedule(c) {
+  if (!c?.plan?.topics?.length) return null;
+  const doneByTopic = new Map();
+  for (const session of c.schedule?.sessions || []) {
+    if (session.done) doneByTopic.set(session.topicId, (doneByTopic.get(session.topicId) || 0) + 1);
+  }
+  c.hoursPerDay = Number(c.hoursPerDay) || 1.5;
+  c.schedule = buildStudySchedule({
+    topics: c.plan.topics,
+    examDate: c.examDate || '',
+    hoursPerDay: c.hoursPerDay,
+  });
+  for (const session of c.schedule?.sessions || []) {
+    const left = doneByTopic.get(session.topicId) || 0;
+    if (left > 0) { session.done = true; doneByTopic.set(session.topicId, left - 1); }
+  }
+  for (const topic of c.plan.topics) syncTopicFromSchedule(c, topic.id);
+  return c.schedule;
+}
+
+function schedulePanel(c) {
+  if (!c?.plan?.topics?.length) return '';
+  const schedule = c.schedule;
+  const sum = scheduleSummary(schedule);
+  const days = schedule ? [...new Set(schedule.sessions.map((s) => s.date))].sort() : [];
+  const visible = state.ui.showAllDays ? days : days.slice(0, 7);
+  return `<div class="panel stack" id="calendario">
+    <div class="panel-title"><div><span class="eyebrow">Tu calendario</span><h2 style="margin:6px 0 0">Qué estudiar cada día</h2></div>
+      <div class="row"><span class="pill ${schedule?.late ? 'medium' : 'done'}">${schedule ? `${sum.done}/${sum.total} sesiones` : 'sin calendario'}</span>
+        <button class="btn small" data-action="build-schedule">${schedule ? 'Rehacer' : 'Crear calendario'}</button></div></div>
+    ${!schedule ? '<p class="muted small">Con tu fecha de examen y el tiempo diario repartimos los temas en sesiones cortas. Así sabes siempre qué toca.</p>' : `
+      <p class="muted small">${sum.total} sesiones · ${sum.days} días · ${Math.round(sum.leftMinutes)} min por delante${schedule.examDate ? ` · examen el ${esc(schedule.examDate)}` : ''}.</p>
+      ${schedule.late ? '<p class="muted small" style="color:var(--amber)">A este ritmo terminas después del examen. Puedes subir tus horas al día en Mi cuenta o hacer un plan con más tiempo.</p>' : ''}
+      <div class="schedule-days">${visible.map((day) => {
+        const items = sessionsForDate(schedule, day);
+        return `<div class="schedule-day ${day === localDateKey() ? 'today' : ''}">
+          <div class="row between"><strong>${esc(dayLabel(day))}</strong><span class="muted tiny">${items.reduce((a, s) => a + s.minutes, 0)} min</span></div>
+          ${items.map((s) => `<div class="session ${s.done ? 'done' : ''}"><button class="session-check" data-action="toggle-session" data-id="${esc(s.id)}" title="${s.done ? 'Marcar pendiente' : 'Marcar lista'}">${s.done ? '✓' : ''}</button><span class="grow">${esc(s.title)}</span><span class="tiny muted">${s.minutes} min</span></div>`).join('')}
+        </div>`;
+      }).join('')}</div>
+      ${days.length > visible.length ? `<button class="btn small ghost" data-action="toggle-all-days">${state.ui.showAllDays ? 'Ver solo una semana' : `Ver los ${days.length} días`}</button>` : ''}
+      <p class="muted tiny">Marca cada sesión al terminarla. Cuando se acaban las sesiones de un tema, ese tema pasa a «Dominado» y sale del calendario, pero sigue en la lista de Temas.</p>`}
+  </div>`;
+}
+
+function todayPanel(c) {
+  if (!c?.plan?.topics?.length) return '';
+  const today = localDateKey();
+  const sessions = sessionsForDate(c.schedule, today);
+  const overdue = (c.schedule?.sessions || []).filter((s) => !s.done && s.date < today);
+  const pending = [...overdue, ...sessions.filter((s) => !s.done)];
+  const nextPending = [...(c.schedule?.sessions || [])].filter((s) => !s.done).sort((a, b) => a.date.localeCompare(b.date))[0];
+  const nextLabel = nextPending ? dayLabel(nextPending.date).replace(/^./, (letter) => letter.toLowerCase()) : '';
+  if (!c.schedule || (!sessions.length && !overdue.length)) {
+    return `<div class="panel stack"><div class="panel-title"><div><span class="eyebrow">Lo de hoy</span><h2 style="margin:6px 0 0">Tu siguiente paso</h2></div></div>
+      <p class="muted small">Crea tu calendario y verás qué tema toca hoy y cuánto tiempo dedicarle.</p>
+      <div class="row"><button class="btn small primary" data-action="build-schedule">Crear mi calendario →</button><a class="btn small" href="#/app/tutor">Preguntar al tutor</a></div></div>`;
+  }
+  return `<div class="panel stack"><div class="panel-title"><div><span class="eyebrow">Lo de hoy</span><h2 style="margin:6px 0 0">${pending.length ? `${pending.length} sesión${pending.length === 1 ? '' : 'es'} pendiente${pending.length === 1 ? '' : 's'}` : '¡Todo hecho por hoy! 🎉'}</h2></div>
+      <a class="btn small" href="#/app/plan">Ver calendario</a></div>
+    ${pending.length ? `<div class="onboard-steps">${pending.map((s) => `<div class="onboard-step"><span class="onboard-num">${s.minutes}′</span>
+      <div class="grow"><strong>${esc(s.title)}</strong><p class="muted small">${s.date < today ? 'Sesión pendiente de otro día' : 'Sesión de hoy'} · ${esc(c.title || c.subject)}</p></div>
+      <button class="btn small primary" data-action="toggle-session" data-id="${esc(s.id)}">Marcar lista ✓</button></div>`).join('')}</div>`
+      : `<p class="muted small">${nextPending ? `Tu próxima sesión es ${esc(nextLabel)}. Puedes adelantarte si quieres.` : '¡Plan completo! Haz un simulacro para comprobar lo que aprendiste.'} También puedes repasar tarjetas o preguntar al tutor.</p>`}
+    <div class="row" style="margin-top:14px"><a class="btn primary small" href="#/app/tutor">Preguntar al tutor</a><a class="btn small" href="#/app/cards">Repasar tarjetas</a></div>
+  </div>`;
+}
+
 /* ------------------------- Guía para principiantes ------------------------- */
 function beginnerSteps() {
   return [
@@ -437,7 +526,7 @@ function beginnerSteps() {
     {
       n: 2,
       title: 'Crea tu plan con tus apuntes',
-      text: 'Pega tu texto o pulsa «Usar ejemplo» para ver cómo funciona.',
+      text: 'Pega tu texto o pulsa «Usar ejemplo». Verás un calendario con qué estudiar cada día.',
       done: Boolean(course()),
       href: '#/app/plan',
       cta: 'Crear mi plan',
@@ -480,7 +569,7 @@ function helpOverlay() {
       <div class="grow"><strong>${esc(step.title)}</strong><p class="muted small">${esc(step.text)}</p></div>
       <button class="btn small primary" data-action="help-go" data-href="${step.href}">Ir ahí →</button>
     </div>`).join('')}</div>
-    <div class="panel compact"><p class="muted small" style="margin:0">Después puedes usar <strong>Tarjetas</strong> para repasar, <strong>Practicar</strong> con preguntas y <strong>Examen de práctica</strong> para medirte. Todo se guarda en tu navegador: sin registro obligatorio, sin pago y sin anuncios.</p></div>
+    <div class="panel compact"><p class="muted small" style="margin:0">Tu plan reparte los temas en sesiones cortas: en <strong>Inicio</strong> ves «Lo de hoy» y en <strong>Mi plan</strong> el calendario completo. Después usa <strong>Tarjetas</strong> para repasar, <strong>Practicar</strong> con preguntas y <strong>Examen de práctica</strong> para medirte. Todo se guarda en tu navegador: sin registro obligatorio, sin pago y sin anuncios.</p></div>
     <p class="muted tiny">Si algo no funciona, prueba Ajustes: con el modo demo puedes ver la app entera sin configurar IA.</p>
   </div></div>`;
 }
@@ -540,7 +629,7 @@ function landing() {
       <div class="grid cols-4">
         <div class="card"><div class="step-num">01</div><h3>Pon la fecha</h3><p>Dime qué asignatura tienes y cuándo es el examen. El plan se adapta al tiempo que queda.</p></div>
         <div class="card"><div class="step-num">02</div><h3>Aporta tu material</h3><p>Apuntes, texto, fotos de ejercicios o lo que tengas. Solo se usa lo que subes.</p></div>
-        <div class="card"><div class="step-num">03</div><h3>Estudia paso a paso</h3><p>Lecciones con ejemplos, tarjetas, preguntas y simulacros generados a partir de tu material.</p></div>
+        <div class="card"><div class="step-num">03</div><h3>Estudia paso a paso</h3><p>Un calendario te dice qué toca cada día. Lecciones, tarjetas, preguntas y simulacros salen de tu material.</p></div>
         <div class="card"><div class="step-num">04</div><h3>Pregunta sin parar</h3><p>El tutor te da pistas, no respuestas. Tú decides cuándo usar la IA local o la de la nube.</p></div>
       </div>
     </section>
@@ -548,7 +637,7 @@ function landing() {
     <section class="block container" id="caracteristicas">
       <div class="section-head"><span class="eyebrow">Funciones</span><h2>Disciplina, repetición y dominio</h2><p>Como en el calmecac, pero sin puertas cerradas: gratis, de código abierto y con tus datos guardados en tu dispositivo.</p></div>
       <div class="grid cols-3">
-        <div class="card"><div class="icon">🗺️</div><h3>Plan hasta el examen</h3><p>Temas priorizados y repartidos según los días que tengas. Siempre sabes qué toca después.</p></div>
+        <div class="card"><div class="icon">🗺️</div><h3>Calendario hasta el examen</h3><p>Temas priorizados y repartidos en sesiones diarias según tu tiempo. Siempre sabes qué toca hoy y qué sigue.</p></div>
         <div class="card"><div class="icon">💬</div><h3>Tutor socrático</h3><p>Preguntas, pistas y comprobación de comprensión. También puede resolver paso a paso si lo pides.</p></div>
         <div class="card"><div class="icon">🧠</div><h3>Tarjetas inteligentes</h3><p>Repetición espaciada: las difíciles vuelven antes y las que dominas se espacian.</p></div>
         <div class="card"><div class="icon">✅</div><h3>Cuestionarios corregidos</h3><p>Preguntas con explicación para que sepas exactamente dónde fallaste.</p></div>
@@ -651,7 +740,6 @@ views.home = () => {
   const done = c.plan?.topics?.filter((t) => t.status === 'done').length || 0;
   const total = c.plan?.topics?.length || 0;
   const percent = total ? Math.round((done / total) * 100) : 0;
-  const next = c.plan?.topics?.find((t) => t.status !== 'done');
   const last7 = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(); d.setDate(d.getDate() - (6 - i));
     return { day: d, key: d.toISOString().slice(0, 10) };
@@ -659,6 +747,7 @@ views.home = () => {
   return `<div class="stack">
     ${header}
     ${beginnerChecklist()}
+    ${todayPanel(c)}
     <div class="panel">
       <div class="row between"><div><span class="eyebrow">${k ? 'Tu meta' : 'Tu examen'}</span><h2 style="margin:8px 0 4px">${esc(c.title || c.subject || 'Mi examen')}</h2><div class="muted small">${esc(c.subject || '')} · nivel ${esc(profile()?.level || config?.level || 'bachillerato')}</div></div>
         ${left !== null ? `<div class="center"><div style="font-family:'Space Grotesk';font-size:34px">${left >= 0 ? left : '—'}</div><div class="muted tiny">días restantes</div></div>` : ''}</div>
@@ -670,14 +759,8 @@ views.home = () => {
       <div class="stat"><div class="value">${dueCards()}</div><div class="label">tarjetas para repasar</div></div>
       <div class="stat"><div class="value">${state.stats.minutes[new Date().toISOString().slice(0, 10)] || 0} min</div><div class="label">estudiados hoy</div></div>
     </div>
-    <div class="grid cols-2">
-      <div class="panel"><div class="panel-title"><h2>Qué toca ahora</h2><a class="btn small" href="#/app/plan">Ver plan</a></div>
-        ${next ? `<div class="topic"><div><h4>${esc(next.title)}</h4><p>${esc(next.description || 'Repasa este tema y haz un ejercicio.')}</p></div><span class="pill ${next.priority}">${esc(next.priority)}</span></div>` : '<p class="muted">¡Plan completo! Haz un simulacro para comprobarlo.</p>'}
-        <div class="row" style="margin-top:14px"><a class="btn primary small" href="#/app/tutor">Preguntar al tutor</a><a class="btn small" href="#/app/cards">Repasar tarjetas</a></div>
-      </div>
-      <div class="panel"><div class="panel-title"><h2>Tu semana</h2><span class="muted small">minutos por día</span></div>
-        <div class="chart">${last7.map(({ day, key }) => `<div class="col"><i style="height:${Math.max(3, Math.min(100, (state.stats.minutes[key] || 0) * 2))}%"></i><span>${day.toLocaleDateString('es', { weekday: 'short' }).slice(0, 2)}</span></div>`).join('')}</div>
-      </div>
+    <div class="panel"><div class="panel-title"><h2>Tu semana</h2><span class="muted small">minutos por día</span></div>
+      <div class="chart">${last7.map(({ day, key }) => `<div class="col"><i style="height:${Math.max(3, Math.min(100, (state.stats.minutes[key] || 0) * 2))}%"></i><span>${day.toLocaleDateString('es', { weekday: 'short' }).slice(0, 2)}</span></div>`).join('')}</div>
     </div>
   </div>`;
 };
@@ -695,11 +778,13 @@ views.plan = () => {
       <div class="row" style="margin-top:16px">
         <button class="btn small" data-action="generate" data-kind="lessons">📖 Generar lecciones</button>
         <button class="btn small" data-action="generate" data-kind="flashcards">🧠 Generar tarjetas</button>
-        <button class="btn small" data-action="generate" data-kind="quiz">✅ Generar quiz</button>
+        <button class="btn small" data-action="generate" data-kind="quiz">✅ Generar preguntas</button>
         <button class="btn small" data-action="generate" data-kind="exam">📝 Generar simulacro</button>
         <button class="btn small" data-action="generate" data-kind="podcast">🎧 Generar podcast</button>
       </div>
     </div>
+    ${todayPanel(c)}
+    ${schedulePanel(c)}
     <div class="panel"><div class="panel-title"><h2>Temas</h2><span class="muted small">marca lo que domines</span></div>
       ${topics.length ? topics.map((t) => `<div class="topic"><div style="flex:1"><h4>${esc(t.title)}</h4><p>${esc(t.description)}</p><div class="row tiny muted" style="margin-top:6px"><span>⏱ ${t.minutes} min</span><span class="pill ${esc(t.priority)}">${esc(t.priority)}</span></div></div>
         <select data-change="topic-status" data-id="${esc(t.id)}" style="width:auto"><option value="todo" ${t.status === 'todo' ? 'selected' : ''}>Pendiente</option><option value="doing" ${t.status === 'doing' ? 'selected' : ''}>En curso</option><option value="done" ${t.status === 'done' ? 'selected' : ''}>Dominado</option></select></div>`).join('') : '<p class="muted">Todavía no hay temas. Genera un plan con tus materiales.</p>'}
@@ -714,12 +799,12 @@ function planForm() {
   const sample = 'La fotosíntesis es el proceso por el que las plantas convierten la luz solar en energía química. Ocurre en los cloroplastos y requiere agua y dióxido de carbono. Como subproducto se libera oxígeno. La ecuación general es 6CO2 + 6H2O + luz → C6H12O6 + 6O2. La clorofila absorbe principalmente luz roja y azul, y refleja la verde, por eso las hojas son verdes. La fase clara depende de la luz y produce ATP y NADPH; el ciclo de Calvin fija el carbono sin necesidad directa de luz.';
   return `<form class="panel stack" data-form="create-plan">
     <div><span class="eyebrow">Tu plan</span><h2 style="margin:8px 0">¿Qué vas a estudiar?</h2>
-      <p class="muted small">Escribe un tema y pega tus apuntes. La IA preparará pasos pequeños para ti. Todo se guarda solo en tu navegador.</p></div>
+      <p class="muted small">Escribe un tema y pega tus apuntes. Con la fecha del examen y tus horas al día prepararemos un calendario de sesiones cortas. Todo se guarda solo en tu navegador.</p></div>
     <div class="grid cols-2">
       <label class="field">Materia o tema<input name="subject" placeholder="Ej.: Biología" required /></label>
       <label class="field">¿Cuándo es tu examen? (opcional)<input name="examDate" type="date" /></label>
       <label class="field">¿Qué quieres lograr? (opcional)<input name="goal" placeholder="Ej.: aprobar con nota alta" /></label>
-      <label class="field">Horas al día<input name="hoursPerDay" type="number" min="0.5" max="12" step="0.5" value="1.5" /></label>
+      <label class="field">Horas al día para estudiar<input name="hoursPerDay" type="number" min="0.5" max="12" step="0.5" value="1.5" /></label>
     </div>
     <label class="field">Pega aquí tus apuntes<textarea name="material" rows="7" placeholder="Copia aquí tu texto, esquemas o exámenes anteriores…">${state.ui.sample ? esc(sample) : ''}</textarea></label>
     <p class="muted tiny">¿No tienes apuntes a la mano? Pulsa <strong>Usar ejemplo</strong> al final para probar.</p>
@@ -1148,7 +1233,7 @@ async function generate(kind) {
   });
   if (res.warning) state.ui.toast = { text: res.warning, error: false };
   if (!res.data) throw new Error('No se generó contenido');
-  if (kind === 'plan') c.plan = res.data;
+  if (kind === 'plan') { c.plan = res.data; rebuildSchedule(c); }
   if (kind === 'lessons') c.lessons = res.data.lessons || [];
   if (kind === 'flashcards') c.flashcards = (res.data.cards || []).map((card) => ({ ...card, id: uid() }));
   if (kind === 'quiz') { c.quiz = res.data; state.ui.quiz = null; }
@@ -1326,6 +1411,27 @@ async function handleAction(action, data) {
     case 'import-progress': $('#group-progress')?.click(); break;
     case 'teacher-generate': busy(() => generateTeacher(data.kind, data.id)); break;
     case 'new-course': state.activeCourse = null; location.hash = '#/app/plan'; render(); break;
+    case 'build-schedule': {
+      const c = course();
+      if (!c?.plan?.topics?.length) { toast('Crea primero un plan con tus apuntes.', true); break; }
+      const schedule = rebuildSchedule(c);
+      save(); render();
+      const days = new Set((schedule?.sessions || []).map((s) => s.date)).size;
+      toast(schedule ? `📅 Calendario listo: ${schedule.sessions.length} sesiones en ${days} días.` : 'No hay temas para repartir.', !schedule);
+      break;
+    }
+    case 'toggle-session': {
+      const c = course();
+      const session = c?.schedule?.sessions?.find((s) => s.id === data.id);
+      if (!session) break;
+      session.done = !session.done;
+      const mastered = syncTopicFromSchedule(c, session.topicId);
+      award(2);
+      if (mastered) toast('🏅 Tema dominado. ¡Buen trabajo!');
+      else render();
+      break;
+    }
+    case 'toggle-all-days': state.ui.showAllDays = !state.ui.showAllDays; render(); break;
     case 'sample': state.ui.sample = !state.ui.sample; render(); break;
     case 'chat-mode': state.chatMode = data.mode; save(); render(); break;
     case 'use-example': state.ui.draft = data.text; render(); $('#chat-input')?.focus(); break;
@@ -1511,11 +1617,13 @@ async function handleForm(form, data) {
           subject: data.get('subject') || '',
           examDate: data.get('examDate') || '',
           goal: data.get('goal') || '',
+          hoursPerDay: Number(data.get('hoursPerDay')) || 1.5,
           createdAt: new Date().toISOString(),
           plan: generated.data,
           materials: [{ id: uid(), name: 'Apuntes iniciales', text, images: files.filter((f) => f.kind === 'image'), addedAt: new Date().toISOString() }],
           flashcards: [], lessons: [], quiz: null, exam: null, podcast: null, examMinutes: 60,
         });
+        rebuildSchedule(state.courses.at(-1));
         state.activeCourse = id;
         state.ui.pendingPlanFiles = [];
         state.ui.sample = false;
@@ -1672,8 +1780,13 @@ async function handleChange(event) {
     if (topic) {
       const wasDone = topic.status === 'done';
       topic.status = el.value;
+      for (const session of c.schedule?.sessions || []) {
+        if (session.topicId !== topic.id) continue;
+        if (el.value === 'done') session.done = true;
+        else if (el.value === 'todo') session.done = false;
+      }
       if (el.value === 'done' && !wasDone) award(5);
-      save();
+      save(); render();
     }
     return;
   }
