@@ -1,4 +1,4 @@
-// Lumi · aplicación web PWA. Sin frameworks, sin build, sin dependencias.
+// Zoleva · aplicación web PWA. Sin frameworks, sin build, sin dependencias.
 const STORAGE_KEY = 'estudio-libre-v1';
 const $ = (selector) => document.querySelector(selector);
 const uid = () => Math.random().toString(36).slice(2, 10);
@@ -10,7 +10,7 @@ const md = (text) => esc(text)
   .replace(/\n/g, '<br />');
 
 const NAV = [
-  { id: 'home', icon: '✦', label: 'Inicio' },
+  { id: 'home', icon: '◈', label: 'Inicio' },
   { id: 'tutor', icon: '💬', label: 'Tutor IA' },
   { id: 'plan', icon: '🗺️', label: 'Plan de estudio' },
   { id: 'cards', icon: '🧠', label: 'Tarjetas' },
@@ -143,21 +143,22 @@ function daysUntil(date) {
 function landing() {
   return `<div class="landing">
     <nav class="nav container">
-      <a class="brand" href="#/"><span class="brand-mark">✦</span><span class="brand-name">Lumi</span></a>
-      <div class="nav-links"><a href="#caracteristicas">Funciones</a><a href="#como-funciona">Cómo funciona</a><a href="#ia">Tu IA</a><a href="#faq">Preguntas</a></div>
+      <a class="brand" href="#/"><span class="brand-mark">◈</span><span class="brand-name">Zoleva Calmécatl</span></a>
+      <div class="nav-links"><a href="#origen">Origen</a><a href="#caracteristicas">Funciones</a><a href="#como-funciona">Cómo funciona</a><a href="#ia">Tu IA</a><a href="#faq">Preguntas</a></div>
       <a class="btn primary small" href="#/app">Entrar gratis →</a>
     </nav>
 
     <header class="hero container"><div class="hero-grid">
       <div>
-        <span class="badge">✦ 100 % libre · sin cuenta · sin pago</span>
-        <h1>Tu tutor de estudio, <span class="gradient-text">con la IA que quieras.</span></h1>
-        <p class="lead">Sube tus apuntes y consigue un plan de examen, lecciones, tarjetas, cuestionarios y simulacros. Funciona con IA local, proveedores gratuitos o los CLIs que ya usas.</p>
-        <div class="actions"><a class="btn primary" href="#/app">Empezar a estudiar →</a><a class="btn ghost" href="#como-funciona">Ver cómo funciona</a></div>
-        <div class="chips"><span class="chip">✓ Offline con Ollama</span><span class="chip">✓ OpenRouter :free</span><span class="chip">✓ Gemini / Groq</span><span class="chip">✓ opencode / codex / claude</span></div>
+        <span class="badge">◈ Del náhuatl: escuela de élite mexica · código abierto</span>
+        <h1>La escuela de élite mexica, <span class="gradient-text">gratis y en tu bolsillo.</span></h1>
+        <p class="lead"><strong>Zoleva Calmécatl</strong> convierte tus apuntes en un plan de examen, lecciones, tarjetas, cuestionarios y simulacros. Funciona con IA local, proveedores gratuitos o los CLIs que ya usas. Sin cuenta, sin pago y sin anuncios.</p>
+        <div class="actions"><a class="btn primary" href="#/app">Entrar a la escuela →</a><a class="btn ghost" href="#origen">Conoce el nombre</a></div>
+        <div class="chips"><span class="chip">◈ Offline con Ollama</span><span class="chip">◈ OpenRouter :free</span><span class="chip">◈ Gemini / Groq</span><span class="chip">◈ opencode / codex / claude</span></div>
+        <div class="greca" aria-hidden="true"></div>
       </div>
       <div class="mock" aria-hidden="true">
-        <div class="mock-header"><div class="mock-dots"><i></i><i></i><i></i></div> lumi · tutor</div>
+        <div class="mock-header"><div class="mock-dots"><i></i><i></i><i></i></div> zoleva · tutor</div>
         <div class="mock-card">
           <h3>¿Por qué es negativo el coseno en el tercer cuadrante?</h3>
           <div class="bubble user">No lo entiendo, ¿me das una pista?</div>
@@ -170,8 +171,12 @@ function landing() {
       </div>
     </div></header>
 
+    <section class="block container" id="origen">
+      <div class="card origen"><div><span class="eyebrow">El nombre</span><h2 style="margin:10px 0">Zoleva Calmécatl</h2><p>Del náhuatl, <strong>escuela de élite mexica</strong>. El calmecac era el lugar donde se formaban los jóvenes de la nobleza: disciplina, memoria, lectura del cielo y dominio de las artes. Aquí recuperamos esa idea —aprender con rigor y sin excusas— y la ponemos al alcance de cualquiera, gratis y con la IA que tú elijas.</p></div><div class="origen-sello" aria-hidden="true">◈</div></div>
+    </section>
+
     <section class="block container" id="como-funciona">
-      <div class="section-head"><span class="eyebrow">Cómo funciona</span><h2>De un montón de apuntes a un plan que puedes seguir</h2><p>Tú aportas el material. Lumi lo convierte en pasos pequeños, práctica real y un tutor que te espera cuando te atascas.</p></div>
+      <div class="section-head"><span class="eyebrow">Cómo funciona</span><h2>De un montón de apuntes a un plan que puedes seguir</h2><p>Tú aportas el material. Zoleva Calmécatl lo convierte en pasos pequeños, práctica real y un tutor que te espera cuando te atascas.</p></div>
       <div class="grid cols-4">
         <div class="card"><div class="step-num">01</div><h3>Pon la fecha</h3><p>Dime qué asignatura tienes y cuándo es el examen. El plan se adapta al tiempo que queda.</p></div>
         <div class="card"><div class="step-num">02</div><h3>Aporta tu material</h3><p>Apuntes, texto, fotos de ejercicios o lo que tengas. Solo se usa lo que subes.</p></div>
@@ -181,11 +186,11 @@ function landing() {
     </section>
 
     <section class="block container" id="caracteristicas">
-      <div class="section-head"><span class="eyebrow">Funciones</span><h2>Todo lo que necesitas, en un solo sitio</h2><p>Gratis, de código abierto y con tus datos guardados en tu dispositivo.</p></div>
+      <div class="section-head"><span class="eyebrow">Funciones</span><h2>Disciplina, repetición y dominio</h2><p>Como en el calmecac, pero sin puertas cerradas: gratis, de código abierto y con tus datos guardados en tu dispositivo.</p></div>
       <div class="grid cols-3">
         <div class="card"><div class="icon">🗺️</div><h3>Plan hasta el examen</h3><p>Temas priorizados y repartidos según los días que tengas. Siempre sabes qué toca después.</p></div>
         <div class="card"><div class="icon">💬</div><h3>Tutor socrático</h3><p>Preguntas, pistas y comprobación de comprensión. También puede resolver paso a paso si lo pides.</p></div>
-        <div class="card"><div class="icon">🧠</div><h3>Tarjetas inteligentes</h3><p>Repetición espaciada: las difíciles vuelven antes y las que dominas se spacing out.</p></div>
+        <div class="card"><div class="icon">🧠</div><h3>Tarjetas inteligentes</h3><p>Repetición espaciada: las difíciles vuelven antes y las que dominas se espacian.</p></div>
         <div class="card"><div class="icon">✅</div><h3>Cuestionarios corregidos</h3><p>Preguntas con explicación para que sepas exactamente dónde fallaste.</p></div>
         <div class="card"><div class="icon">📝</div><h3>Simulacros con tiempo</h3><p>Preguntas objetivas y desarrolladas, con rúbrica y resultados por tema.</p></div>
         <div class="card"><div class="icon">📷</div><h3>Fotos de ejercicios</h3><p>Adjunta una imagen al tutor y que te guíe paso a paso con proveedores con visión.</p></div>
@@ -193,25 +198,26 @@ function landing() {
     </section>
 
     <section class="block container" id="ia">
-      <div class="section-head"><span class="eyebrow">Tu IA, tus reglas</span><h2>Cámbiala cuando quieras. Incluso sin internet.</h2><p>Elige un proveedor en Ajustes. Si uno falla, Lumi sigue funcionando con el modo demo.</p></div>
+      <div class="section-head"><span class="eyebrow">Tu IA, tus reglas</span><h2>Cámbiala cuando quieras. Incluso sin internet.</h2><p>Elige un proveedor en Ajustes. Si uno falla, Zoleva Calmécatl sigue funcionando con el modo demo.</p></div>
       <div class="provider-strip">
-        <span>🦙 Ollama / llama.cpp / LM Studio</span><span>🌐 OpenRouter (modelos :free)</span><span>✦ Google Gemini</span>
+        <span>🦙 Ollama / llama.cpp / LM Studio</span><span>🌐 OpenRouter (modelos :free)</span><span>◈ Google Gemini</span>
         <span>⚡ Groq</span><span>🖥️ opencode</span><span>🖥️ Codex CLI</span><span>🖥️ Claude CLI</span><span>🖥️ Gemini CLI</span><span>⌨️ Tu comando personalizado</span>
       </div>
       <div class="card" style="margin-top:20px"><h3>Sin proveedor también funciona</h3><p>El modo demo genera planes, tarjetas y preguntas de ejemplo a partir de tu texto, sin red y sin claves. Es ideal para probar la app antes de configurar nada.</p></div>
     </section>
 
-    <section class="cta-band container"><div class="cta-inner"><h2>Empieza ahora, cuesta cero</h2><p>Sin tarjeta, sin cuenta, sin anuncios. Solo tú, tus apuntes y la IA que decidas usar.</p><div class="actions" style="justify-content:center"><a class="btn primary" href="#/app">Abrir Lumi →</a><a class="btn ghost" href="#ia">Qué IA puedo usar</a></div></div></section>
+    <section class="cta-band container"><div class="cta-inner"><div class="greca" aria-hidden="true" style="margin:0 auto 18px"></div><h2>Entra al calmecac. Cuesta cero.</h2><p>Sin tarjeta, sin cuenta, sin anuncios. Solo tú, tus apuntes y la IA que decidas usar.</p><div class="actions" style="justify-content:center"><a class="btn primary" href="#/app">Abrir Zoleva Calmécatl →</a><a class="btn ghost" href="#ia">Qué IA puedo usar</a></div></div></section>
 
     <section class="block container" id="faq">
       <div class="section-head"><span class="eyebrow">Preguntas frecuentes</span><h2>Lo que probablemente te preguntes</h2></div>
+      <details class="faq"><summary>¿Qué significa Zoleva Calmécatl?</summary><p>Es náhuatl: «escuela de élite mexica». El calmecac formaba a la élite con disciplina, memoria y conocimiento. Tomamos esa herencia como idea de estudio riguroso, pero abierta a todo el mundo y sin coste.</p></details>
       <details class="faq"><summary>¿Es realmente gratis?</summary><p>Sí. El código es MIT y no hay suscripción. La IA local es gratuita; los proveedores en nube tienen capas gratuitas o usan la clave/CLI que tú ya tienes.</p></details>
       <details class="faq"><summary>¿Necesito saber programar?</summary><p>No. Solo abre la página web. Si quieres IA local, instala Ollama y descarga un modelo; en Ajustes puedes pegar la dirección y el nombre del modelo.</p></details>
       <details class="faq"><summary>¿Adónde van mis apuntes?</summary><p>A tu navegador y, si usas IA en la nube, al proveedor que elijas. No hay cuentas, telemetría ni servidores centrales: todo se guarda en tu equipo.</p></details>
       <details class="faq"><summary>¿Funciona en móvil?</summary><p>Sí. Es una PWA: ábrela en el navegador y añádela a la pantalla de inicio. En el mismo WiFi de tu ordenador puedes usar el modelo local.</p></details>
     </section>
 
-    <footer class="footer container"><span>✦ Lumi · estudio libre con IA</span><span>Hecho para aprender de verdad · MIT License</span></footer>
+    <footer class="footer container"><span>◈ Zoleva Calmécatl · escuela de élite mexica · código abierto</span><span>Hecho para aprender de verdad · MIT License</span></footer>
   </div>`;
 }
 
@@ -222,7 +228,7 @@ function appShell(view) {
   const ready = active?.ready;
   return `<div class="app">
     <aside class="sidebar">
-      <a class="brand" href="#/"><span class="brand-mark">✦</span><span class="brand-name">Lumi</span></a>
+      <a class="brand" href="#/"><span class="brand-mark">◈</span><span class="brand-name">Zoleva</span></a>
       <nav>${NAV.map((item) => `<a class="nav-item ${view === item.id ? 'active' : ''}" href="#/app/${item.id}"><span class="ic">${item.icon}</span>${item.label}</a>`).join('')}</nav>
       <div class="sidebar-foot">
         <div class="status-pill"><span class="dot ${ready ? 'ok' : 'bad'}"></span><div><strong>${esc(active?.name || 'Cargando…')}</strong><br /><span class="tiny">${esc(status?.model || '')}</span></div></div>
@@ -247,7 +253,7 @@ const views = {};
 views.home = () => {
   const c = course();
   if (!c) {
-    return `<div class="panel empty"><div style="font-size:44px">✦</div><h3>Empecemos con tu primer examen</h3>
+    return `<div class="panel empty"><div style="font-size:44px">◈</div><h3>Empecemos con tu primer examen</h3>
       <p>Crea un plan a partir de tus apuntes. Sin cuenta y sin pagar.</p><div class="actions" style="justify-content:center;margin-top:18px"><a class="btn primary" href="#/app/plan">Crear mi plan →</a><a class="btn ghost" href="#/app/tutor">Hablar con el tutor</a></div></div>`;
   }
   const left = daysUntil(c.examDate);

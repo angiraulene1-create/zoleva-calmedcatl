@@ -1,12 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#8b5cf6"/>
-      <stop offset="1" stop-color="#22d3ee"/>
+    <linearGradient id="oro" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f3d98a"/>
+      <stop offset=".55" stop-color="#c9a24a"/>
+      <stop offset="1" stop-color="#8c6b28"/>
+    </linearGradient>
+    <linearGradient id="jade" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#5eeac2"/>
+      <stop offset="1" stop-color="#128f72"/>
     </linearGradient>
   </defs>
-  <rect width="512" height="512" rx="112" fill="#0b0d1b"/>
-  <path d="M256 72c18 92 42 116 134 134-92 18-116 42-134 134-18-92-42-116-134-134 92-18 116-42 134-134Z" fill="url(#g)"/>
-  <circle cx="374" cy="370" r="44" fill="#a78bfa" opacity=".85"/>
-  <circle cx="130" cy="378" r="22" fill="#22d3ee" opacity=".8"/>
+  <rect width="512" height="512" rx="108" fill="#0a0d0c"/>
+  <rect x="18" y="18" width="476" height="476" rx="94" fill="none" stroke="url(#oro)" stroke-width="4" opacity=".55"/>
+  <path d="M92 382 H154 V326 H210 V270 H266 V214 H322 V158 H378 V102 H420" fill="none" stroke="url(#oro)" stroke-width="20" stroke-linejoin="miter"/>
+  <path d="M92 382 H154 V326 H210 V270 H266 V214 H322 V158 H378 V102 H420" fill="none" stroke="url(#jade)" stroke-width="6" stroke-linejoin="miter" opacity=".9"/>
+  <path d="M256 214 L300 270 L256 326 L212 270 Z" fill="url(#jade)"/>
+  <circle cx="256" cy="270" r="12" fill="#f3d98a"/>
+  <path d="M112 420 H400" stroke="url(#oro)" stroke-width="6" opacity=".7"/>
 </svg>

@@ -1,13 +1,13 @@
 {
-  "name": "Lumi · Estudio libre con IA",
-  "short_name": "Lumi",
+  "name": "Zoleva Calmécatl · Escuela de élite mexica",
+  "short_name": "Zoleva",
   "description": "Plan de estudio, tutor, tarjetas, quiz y simulacros con IA local o gratuita.",
   "lang": "es",
   "start_url": "/#/app",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#0b0d1b",
-  "theme_color": "#0b0d1b",
+  "background_color": "#0a0d0c",
+  "theme_color": "#0a0d0c",
   "icons": [
     { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
   ]

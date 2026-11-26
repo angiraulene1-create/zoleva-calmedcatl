@@ -1,23 +1,39 @@
-# ✦ Lumi · Estudio Libre
+# ◈ Zoleva Calmécatl
 
-Tutor de estudio **libre, gratuito y local-first** inspirado en apps de preparación de exámenes como Astra AI. Convierte tus apuntes en un plan, lecciones, tarjetas con repetición espaciada, cuestionarios, simulacros y un tutor que te guía con pistas.
+[![License: MIT](https://img.shields.io/badge/License-MIT-%23c9a24a)](LICENSE)
+[![Node.js ≥ 18](https://img.shields.io/badge/Node.js-%E2%89%A518-3fcf9e)](https://nodejs.org)
+[![Sin dependencias](https://img.shields.io/badge/dependencies-0-6f7f6b)](package.json)
 
-No hay cuenta, ni pago, ni telemetría. Tu progreso se guarda en tu navegador y la configuración de IA en un archivo de tu equipo.
+**Escuela de élite mexica · código abierto · gratis para siempre.**
 
-## Qué incluye
+Zoleva Calmécatl toma su nombre del náhuatl: *escuela de élite mexica*. El antiguo *calmecac* formaba a la élite con disciplina, memoria y dominio de las artes. Nosotros recuperamos esa idea —aprender con rigor— y la ponemos al alcance de cualquiera, sin puertas cerradas ni pagos.
 
-- **Página de presentación** con funciones, funcionamiento y preguntas frecuentes.
+Es una app de estudio que convierte tus apuntes en un **plan de examen, lecciones, tarjetas con repetición espaciada, cuestionarios, simulacros y un tutor IA** que te guía con pistas en vez de darte la respuesta.
+
+> Repositorio: <https://github.com/angiraulene1-create/zoleva-calmedcatl>
+
+## ¿Por qué existe?
+
+Porque preparar un examen no debería exigir una suscripción, una cuenta ni entregar tus apuntes a una empresa. Aquí:
+
+- **No hay cuenta, ni pago, ni anuncios, ni telemetría.**
+- Tus datos se quedan en tu navegador; la configuración de IA, en tu equipo.
+- Puedes usar **IA local sin internet** o elegir entre proveedores gratuitos y CLIs que ya tengas.
+- Si un proveedor falla, el **modo demo** sigue generando material de estudio a partir de tu texto.
+
+## Funciones
+
+- **Página de presentación** con el origen del nombre, funciones y preguntas frecuentes.
 - **App web PWA** instalable en móvil y escritorio.
-- **Plan de examen** a partir de tus materiales, con fecha, prioridades y seguimiento.
-- **Tutor IA** en tres modos: socrático (pistas), resolver paso a paso y explicar. Acepta fotos de ejercicios con proveedores con visión.
-- **Tarjetas de memoria** con programación espaciada tipo SM-2 (otra vez / difícil / bien / fácil).
+- **Plan de examen**: fecha, asignatura, prioridades, temas y seguimiento.
+- **Tutor IA**: modo socrático (pistas), resolución paso a paso y explicación. Acepta fotos de ejercicios con modelos con visión.
+- **Tarjetas de memoria** con programación espaciada tipo SM-2: otra vez / difícil / bien / fácil.
 - **Cuestionarios corregidos** con explicación por respuesta.
-- **Simulacros con temporizador**, preguntas objetivas y desarrolladas con rúbrica.
-- **Podcast** en forma de guion de dos voces.
-- **Materiales**: pega texto, sube `.txt`, `.md`, `.json` o imágenes.
+- **Simulacros con temporizador**: preguntas objetivas y desarrolladas con rúbrica.
+- **Guion de podcast** de dos voces sobre tus materiales.
+- **Materiales**: pega texto o sube `.txt`, `.md`, `.json` e imágenes.
 - **Progreso**: racha, minutos diarios, dominio por tema e historial de aciertos.
 - **Exportar / importar** tus datos en JSON y borrado total.
-- **Modo demo sin IA** para usar la app sin instalar ni configurar nada.
 
 ## IA intercambiable
 
@@ -26,35 +42,34 @@ No hay cuenta, ni pago, ni telemetría. Tu progreso se guarda en tu navegador y 
 | Demo | Gratis | No | Genera ejemplos a partir de tu texto, sin red |
 | Ollama | Gratis | No | Offline. `ollama pull llama3.2` (visión: `llama3.2-vision`) |
 | LM Studio / llama.cpp | Gratis | No | Cualquier endpoint OpenAI-compatible |
-| OpenRouter | Gratis* | Sí | Modelos con sufijo `:free` |
-| Google Gemini | Gratis* | Sí | Capa gratuita de la API |
-| Groq | Gratis* | Sí | Capa gratuita de la API |
+| OpenRouter | Gratis\* | Sí | Modelos con sufijo `:free` |
+| Google Gemini | Gratis\* | Sí | Capa gratuita de la API |
+| Groq | Gratis\* | Sí | Capa gratuita de la API |
 | OpenCode CLI | Según tu sesión | No | `opencode run --format json` |
 | Codex CLI | Según tu sesión | No | `codex exec --json` |
 | Claude CLI | Suscripción | No | `claude -p --output-format json` |
 | Gemini CLI | Según tu sesión | No | `gemini -p --output-format json` |
 | Comando propio | Lo que quieras | No | Cualquier CLI: `mi-ia "{prompt}"` |
 
-\* Según los límites del proveedor.
+\* Según los límites de cada proveedor.
 
-En **Ajustes → Proveedor de IA** puedes cambiar de proveedor, elegir modelo, pegar claves, probar la conexión y ver los modelos disponibles. Si un proveedor falla al generar JSON, Lumi avisa y usa el modo demo para que puedas seguir estudiando.
+En **Ajustes → Proveedor de IA** cambias de proveedor, eliges modelo, pegas claves, pruebas la conexión y consultas los modelos disponibles. Las claves se guardan en `.data/config.json` (permisos `0600`) y solo se envían al proveedor seleccionado.
 
-## Puesta en marcha
+## Inicio rápido
 
-Requiere **Node.js 18 o superior**.
+Requiere **Node.js 18 o superior**. No hay `npm install`: usa solo módulos incluidos en Node.
 
 ```bash
-cd Proyectos/estudio-libre
+git clone https://github.com/angiraulene1-create/zoleva-calmedcatl.git
+cd zoleva-calmedcatl
 npm start
 ```
 
-Abre <http://127.0.0.1:3000>. Para escuchar en la red local (por ejemplo, desde el móvil):
+Abre <http://127.0.0.1:3000>. Para usarla desde el móvil en la misma red:
 
 ```bash
 HOST=0.0.0.0 PORT=3000 npm start
 ```
-
-No hay `npm install`: el proyecto usa solo módulos incluidos en Node.
 
 ### IA local con Ollama
 
@@ -63,41 +78,38 @@ ollama serve
 ollama pull llama3.2
 ```
 
-Después, en Ajustes, selecciona **Ollama (local)** y el modelo `llama3.2`. Para adjuntar fotos, usa un modelo con visión como `llama3.2-vision`.
-
-### Proveedores en la nube
-
-Consigue una clave gratuita en OpenRouter, Google AI Studio o Groq, pégala en Ajustes y elige el modelo. Las claves se guardan en `.data/config.json` (permisos `0600`) y solo se envían al proveedor seleccionado.
+Después, en Ajustes, selecciona **Ollama (local)** y el modelo `llama3.2`. Para fotos de ejercicios usa `llama3.2-vision`.
 
 ### CLIs
 
-Detecta automáticamente los CLIs instalados y disponibles. Selecciona el que quieras en Ajustes. Para cualquier otro, escribe un comando con el marcador `{prompt}`, por ejemplo:
+Detecta automáticamente los CLIs instalados y disponibles. Para cualquier otro, escribe un comando con el marcador `{prompt}`:
 
 ```bash
 mi-ia --json "{prompt}"
 ```
 
-El prompt se pasa entre comillas simples de forma segura. Si tu comando no usa `{prompt}`, Lumi se lo envía por stdin.
+El prompt se pasa entre comillas simples de forma segura. Si el comando no usa `{prompt}`, se lo envía por stdin.
 
 ## Instalar como app (PWA)
 
-En el navegador: **Menú → Instalar aplicación**. En Android e iOS también desde **Añadir a pantalla de inicio**. La app funciona sin conexión para consultar tus datos; la IA local necesita que Ollama esté en marcha en la misma red.
+En el navegador: **Menú → Instalar aplicación**. En Android e iOS: **Añadir a pantalla de inicio**. Puedes consultar tus datos sin conexión; la IA local necesita Ollama en marcha en la misma red.
 
 ## Estructura
 
 ```
-estudio-libre/
-├── server.js              servidor HTTP y rutas /api
+zoleva-calmedcatl/
+├── server.js                 servidor HTTP y rutas /api
 ├── src/
-│   ├── prompts.js         prompts y normalización de respuestas JSON
-│   ├── providers.js       proveedores: Ollama, OpenAI-compatible, Gemini, CLIs…
-│   └── demo.js            generador sin IA
+│   ├── prompts.js            prompts y normalización de respuestas JSON
+│   ├── providers.js          Ollama, OpenAI-compatible, Gemini, CLIs…
+│   └── demo.js               generador sin IA
 ├── public/
-│   ├── index.html         landing + app
-│   ├── app.js             estado, vistas y acciones (localStorage)
-│   ├── styles.css
-│   ├── sw.js              service worker
-│   └── manifest.webmanifest
+│   ├── index.html            landing + app
+│   ├── app.js                estado, vistas y acciones (localStorage)
+│   ├── styles.css            identidad visual obsidiana / jade / oro
+│   ├── sw.js                 service worker
+│   ├── manifest.webmanifest
+│   └── icon.svg              greca mexica
 └── tests/core.test.mjs
 ```
 
@@ -107,14 +119,27 @@ estudio-libre/
 npm test
 ```
 
+## Contribuir
+
+1. Haz un fork del repositorio.
+2. Crea una rama: `git checkout -b mi-mejora`.
+3. Añade cambios y pruebas: `npm test`.
+4. Abre un *pull request* describiendo qué mejoraste.
+
+Las ideas bienvenidas: lectura de PDFs, más proveedores, traducción al náhuatl/inglés, temas visuales adicionales y empaquetado móvil/de escritorio.
+
+## Identidad visual
+
+Obsidiana como fondo, **jade** para el dominio del conocimiento y **oro** para la disciplina y la excelencia; la greca escalonada del emblema evoca los templos y el calmecac. Tipografía: *Cinzel* para los títulos e *Inter* para el texto.
+
 ## Límites conocidos (MVP)
 
 - Los PDFs no se leen directamente: copia el texto o sube una imagen de la página.
-- Las imágenes se guardan en `localStorage`; mantenlas pequeñas (≤ 2 MB) para no agotar la cuota del navegador.
-- La generación no se transmite token a token: se muestra un indicador de “pensando” y aparece la respuesta completa.
-- El simulacro corrige automáticamente las preguntas objetivas; las desarrolladas muestran la rúbrica y puedes pedirle al tutor que las corrija.
-- No hay cuentas ni sincronización entre dispositivos: exporta e importa el JSON para mover tus datos.
+- Las imágenes se guardan en `localStorage`; mantenlas pequeñas (≤ 2 MB).
+- La generación no hace streaming token a token: muestra «pensando» y después la respuesta completa.
+- El simulacro corrige automáticamente las objetivas; las desarrolladas muestran la rúbrica y puedes pedirle al tutor que las corrija.
+- No hay cuentas ni sincronización: exporta e importa el JSON para mover tus datos.
 
 ## Licencia
 
-MIT. Haz un fork, cambia el nombre, añade proveedores o tradúcelo: el código es tuyo también.
+MIT. Úsalo, estúdialo, cámbialo y compártelo. El conocimiento, como en el calmecac, se multiplica cuando se enseña.

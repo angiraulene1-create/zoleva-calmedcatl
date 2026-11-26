@@ -338,6 +338,6 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, HOST, () => {
-  console.log(`\n  ✦ Estudio Libre listo en http://${HOST}:${PORT}`);
+  console.log(`\n  ◈ Zoleva Calmécatl listo en http://${HOST}:${PORT}`);
   console.log('  Pulsa Ctrl+C para detener.\n');
 });

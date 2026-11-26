@@ -1,4 +1,4 @@
-const CACHE = 'lumi-v1';
+const CACHE = 'zoleva-v1';
 const CORE = ['/', '/index.html', '/styles.css', '/app.js', '/icon.svg', '/manifest.webmanifest'];
 
 self.addEventListener('install', (event) => {

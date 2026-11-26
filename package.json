@@ -1,7 +1,7 @@
 {
-  "name": "estudio-libre",
+  "name": "zoleva-calmedcatl",
   "version": "0.1.0",
-  "description": "Tutor de estudio libre, local-first y con IA intercambiable",
+  "description": "Zoleva Calmécatl · escuela de élite mexica: tutor de estudio libre, local-first y con IA intercambiable",
   "type": "module",
   "private": true,
   "license": "MIT",

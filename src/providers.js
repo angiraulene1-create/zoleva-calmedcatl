@@ -224,7 +224,7 @@ async function cliChat(id, config, model, messages) {
     switch (id) {
       case 'cli-opencode':
         command = 'opencode';
-        args = ['run', '--format', 'json', '--title', 'Estudio Libre'];
+        args = ['run', '--format', 'json', '--title', 'Zoleva Calmécatl'];
         if (model) args.push('--model', model);
         for (const image of images) args.push('--file', image.path);
         args.push(prompt);
@@ -367,8 +367,8 @@ export async function chat({ provider, config, messages, model }) {
 
     case 'openrouter':
       return openAiCompatible(config, resolvedModel, messages, 'https://openrouter.ai/api/v1', keyOf(config, 'openrouter'), {
-        'HTTP-Referer': 'https://estudio-libre.local',
-        'X-Title': 'Estudio Libre',
+        'HTTP-Referer': 'https://zoleva-calmedcatl.local',
+        'X-Title': 'Zoleva Calmécatl',
       });
 
     case 'groq':
