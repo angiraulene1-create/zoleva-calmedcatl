@@ -23,17 +23,35 @@ Porque preparar un examen no debería exigir una suscripción, una cuenta ni ent
 
 ## Funciones
 
-- **Página de presentación** con el origen del nombre, glosario náhuatl, funciones y preguntas frecuentes.
-- **App web PWA** instalable en móvil y escritorio, con iconos PNG oficiales para Android, iOS y navegador.
-- **Modo bilingüe Español / Náhuatl**: glosas de términos documentados (`calmecac`, `tlamatiliztli`, `ixtlamachiliztli`, `amoxcalli`…) en la navegación y los encabezados, sin sustituir las etiquetas funcionales.
+### Para estudiantes
+
+- **Perfiles locales**: varios perfiles en el mismo equipo, cada uno con sus cursos, chat, tarjetas y progreso. Sin cuentas ni sincronización.
+- **De kínder a doctorado**: kínder, primaria, secundaria, bachillerato, universidad, maestría y doctorado. El nivel ajusta el vocabulario, la extensión de los pasos y la duración sugerida de las sesiones.
+- **Adaptación personal**: edad, estilo de aprendizaje (visual, auditivo, kinestésico, lector o mixto), tono (amable, juguetón o sobrio) y modo sin presión. La adaptación se envía al modelo en cada generación y chat.
+- **Tutor didáctico y menos estresante**: modos **Didáctico**, **Socrático**, **Sin presión**, **Juego**, **Resolver** y **Explicar**. Empieza por lo que ya sabes, divide los pasos y celebra el esfuerzo. Acepta fotos de ejercicios con modelos con visión.
+- **Pausa guiada de respiración** de 4-4-6 y simulacros que pueden hacerse **sin temporizador**: practicar no tiene por qué ser un castigo.
+- **Recompensas internas**: ganas ✦ puntos por estudiar, desbloqueas insignias y cambias la apariencia de tu tutor con skins (jade, obsidiana, oro, estelar y Tlamatinime) y marcos de perfil. Todo queda en tu equipo; no hay compras, clasificaciones ni competencia.
+- **Foto de perfil y avatar**: la foto se reduce a 160 px y se guarda solo en el navegador.
 - **Plan de examen**: fecha, asignatura, prioridades, temas y seguimiento.
-- **Tutor IA**: modo socrático (pistas), resolución paso a paso y explicación. Acepta fotos de ejercicios con modelos con visión.
 - **Tarjetas de memoria** con programación espaciada tipo SM-2: otra vez / difícil / bien / fácil.
 - **Cuestionarios corregidos** con explicación por respuesta.
-- **Simulacros con temporizador**: preguntas objetivas y desarrolladas con rúbrica.
+- **Simulacros**: preguntas objetivas y desarrolladas con rúbrica, con o sin temporizador.
 - **Guion de podcast** de dos voces sobre tus materiales.
 - **Materiales**: pega texto o sube `.txt`, `.md`, `.json` e imágenes.
 - **Progreso**: racha, minutos diarios, dominio por tema e historial de aciertos.
+
+### Para docentes
+
+- **Rol docente**: al activarlo aparece el panel **Docencia** con grupos guardados localmente.
+- **Grupos y estudiantes**: crea grupos por nivel, añade nombres y guarda el material de la clase.
+- **Guías didácticas, rúbricas y juegos de repaso** generados a partir del material y adaptados al nivel del grupo.
+- **Seguimiento sin servidor**: importa el JSON que exporta cada estudiante y resume minutos, aciertos y dominio en una tabla local.
+
+### Común
+
+- **Página de presentación** con el origen del nombre, glosario náhuatl, niveles, funciones y preguntas frecuentes.
+- **App web PWA** instalable en móvil y escritorio, con iconos PNG oficiales para Android, iOS y navegador.
+- **Modo bilingüe Español / Náhuatl**: glosas de términos documentados (`calmecac`, `tlamatiliztli`, `ixtlamachiliztli`, `amoxcalli`…) en la navegación y los encabezados, sin sustituir las etiquetas funcionales.
 - **Exportar / importar** tus datos en JSON y borrado total.
 
 ## IA intercambiable
@@ -72,6 +90,13 @@ Abre <http://127.0.0.1:3000>. Para usarla desde el móvil en la misma red:
 HOST=0.0.0.0 PORT=3000 npm start
 ```
 
+### Primeros pasos
+
+1. Entra en **Mi perfil** y elige nombre, rol (estudiante o docente), edad, nivel, estilo de estudio y tono del tutor.
+2. Crea un plan con tus apuntes. El tutor y los materiales se adaptan automáticamente a ese perfil.
+3. Estudia a tu ritmo: usa **Didáctico** o **Sin presión**, haz la pausa de respiración si hace falta, y gana ✦ puntos con cada avance.
+4. Canjea los puntos por una skin o un marco en **Mi perfil**. Si eres docente, activa el rol y prepara guías, rúbricas y juegos en **Docencia**.
+
 ### IA local con Ollama
 
 ```bash
@@ -106,7 +131,7 @@ zoleva-calmedcatl/
 │   └── demo.js               generador sin IA
 ├── public/
 │   ├── index.html            landing + app
-│   ├── app.js                estado, vistas y acciones (localStorage)
+│   ├── app.js                perfiles, recompensas, docencia, vistas y acciones (localStorage)
 │   ├── styles.css            identidad visual obsidiana / jade / oro
 │   ├── sw.js                 service worker
 │   ├── manifest.webmanifest
@@ -128,8 +153,8 @@ npm test
 GitHub Actions ejecuta las pruebas en Node 18, 20 y 22 en cada push o PR. Para publicar una versión:
 
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.2.0
+git push origin v0.2.0
 ```
 
 El workflow `release.yml` crea una release con notas generadas automáticamente y tres archivos: código fuente en ZIP, código fuente en TAR.GZ y la PWA lista para desplegar (`-pwa.zip`).
@@ -152,10 +177,11 @@ Los términos náhuatl del glosario y del modo bilingüe provienen del **Breve v
 ## Límites conocidos (MVP)
 
 - Los PDFs no se leen directamente: copia el texto o sube una imagen de la página.
-- Las imágenes se guardan en `localStorage`; mantenlas pequeñas (≤ 2 MB).
+- Las imágenes de ejercicios se guardan en `localStorage` solo mientras se envían; mantenlas pequeñas (≤ 2 MB). La foto de perfil se reduce a 160 px.
 - La generación no hace streaming token a token: muestra «pensando» y después la respuesta completa.
-- El simulacro corrige automáticamente las objetivas; las desarrolladas muestran la rúbrica y puedes pedirle al tutor que las corrija.
-- No hay cuentas ni sincronización: exporta e importa el JSON para mover tus datos.
+- El simulacro corrige automáticamente las objetivas; las desarrolladas muestran la rúbrica y puedes pedirle al tutor que las corrija. El modo sin presión quita el temporizador, pero no cambia la corrección.
+- Los puntos, skins e insignias son motivación local: no se compran, no se comparan y no afectan a tus notas.
+- No hay cuentas ni sincronización: exporta e importa el JSON para mover tus datos. El progreso docente se arma importando los JSON de cada estudiante.
 
 ## Licencia
 

@@ -18,8 +18,11 @@ const NAV = [
   { id: 'exam', icon: '📝', label: 'Simulacro' },
   { id: 'materials', icon: '📚', label: 'Materiales' },
   { id: 'progress', icon: '📈', label: 'Progreso' },
+  { id: 'perfil', icon: '🎖️', label: 'Mi perfil' },
+  { id: 'docente', icon: '🍎', label: 'Docencia' },
   { id: 'settings', icon: '⚙️', label: 'Ajustes' },
 ];
+const navItems = () => NAV.filter((n) => n.id !== 'docente' || profile()?.role === 'teacher');
 const TITLES = {
   home: ['Tu espacio de estudio', 'Sigue el plan, pregunta lo que no entiendas y mide tu progreso.'],
   tutor: ['Tutor IA', 'Te guía paso a paso usando tus propios apuntes.'],
@@ -29,6 +32,8 @@ const TITLES = {
   exam: ['Simulacro', 'Practica como si fuera el examen real.'],
   materials: ['Materiales', 'Tus apuntes son la fuente de todo lo que genera la IA.'],
   progress: ['Progreso', 'Constancia, dominio de temas y resultados.'],
+  perfil: ['Mi perfil', 'Tu avatar, tus recompensas y la forma en que aprendes.'],
+  docente: ['Docencia', 'Grupos, guías didácticas, rúbricas y juegos para tu clase.'],
   settings: ['Ajustes', 'Elige tu IA: local, gratuita o un CLI que ya tengas instalado.'],
 };
 
@@ -45,20 +50,106 @@ const NAHUATL = {
   materials: ['Amoxcalli', 'casa de los libros'],
   progress: ['Ixtlamachiliztli', 'hacer sabios los rostros'],
   settings: ['Tlacahuapahualiztli', 'arte de educar'],
+  perfil: ['Ixtli', 'rostro, identidad'],
+  docente: ['Tlamachtiliztli', 'enseñanza'],
 };
 const nah = (view) => (state.lang === 'nah' ? NAHUATL[view] : null);
 
+// De kínder a doctorado. Cada nivel define sesiones sugeridas y tono del tutor.
+const LEVELS = [
+  { id: 'kinder', label: 'Kínder', short: 'Kínder', minutes: 10, age: [3, 5] },
+  { id: 'primaria', label: 'Primaria', short: 'Primaria', minutes: 15, age: [6, 11] },
+  { id: 'secundaria', label: 'Secundaria', short: 'Secundaria', minutes: 25, age: [12, 15] },
+  { id: 'bachillerato', label: 'Bachillerato', short: 'Prepa', minutes: 35, age: [16, 18] },
+  { id: 'universidad', label: 'Universidad', short: 'Univ.', minutes: 50, age: [19, 25] },
+  { id: 'posgrado', label: 'Maestría', short: 'Maestría', minutes: 60, age: [26, 35] },
+  { id: 'doctorado', label: 'Doctorado', short: 'Doctorado', minutes: 75, age: [36, 99] },
+];
+const STYLES = [
+  ['visual', 'Visual · esquemas y colores'],
+  ['auditivo', 'Auditivo · hablar y escuchar'],
+  ['kinestesico', 'Kinestésico · práctica y movimiento'],
+  ['lector', 'Lector · texto y listas'],
+  ['mixto', 'Mixto · un poco de todo'],
+];
+const TONES = [['amable', 'Amable y paciente'], ['jugueton', 'Juguetón'], ['serio', 'Sobrio y directo']];
+const MODES = [
+  ['didactic', '🧩 Didáctico'], ['socratic', '🎯 Socrático'], ['calm', '🌿 Sin presión'],
+  ['play', '🎲 Juego'], ['solve', '🧮 Resolver'], ['tutor', '💬 Explicar'],
+];
+const SKINS = [
+  { id: 'jade', name: 'Búho de jade', emoji: '🦉', cost: 0, desc: 'Tu compañero de siempre' },
+  { id: 'obsidiana', name: 'Lobo de obsidiana', emoji: '🐺', cost: 30, desc: 'Calma y concentración' },
+  { id: 'oro', name: 'Águila de oro', emoji: '🦅', cost: 80, desc: 'Para miradas agudas' },
+  { id: 'estelar', name: 'Zorro estelar', emoji: '🦊', cost: 150, desc: 'Curioso y veloz' },
+  { id: 'maestro', name: 'Tlamatinime', emoji: '🧙', cost: 300, desc: 'El sabio que enseña' },
+];
+const FRAMES = [
+  { id: 'none', name: 'Sin marco', cost: 0 }, { id: 'jade', name: 'Marco de jade', cost: 40 },
+  { id: 'oro', name: 'Marco de oro', cost: 100 }, { id: 'estelar', name: 'Marco estelar', cost: 200 },
+];
+const BADGES = [
+  { id: 'first-plan', icon: '🌱', name: 'Primer paso', desc: 'Creaste tu primer plan' },
+  { id: 'curious', icon: '❓', name: 'Curioso', desc: 'Preguntaste al tutor 5 veces' },
+  { id: 'cards-10', icon: '🧠', name: 'Memoria despierta', desc: 'Repasaste 10 tarjetas' },
+  { id: 'quiz-100', icon: '🎯', name: 'Tiro certero', desc: 'Cuestionario perfecto' },
+  { id: 'exam-done', icon: '📝', name: 'Simulacro hecho', desc: 'Completaste un simulacro' },
+  { id: 'streak-3', icon: '🔥', name: 'Tres días seguidos', desc: 'Racha de 3 días' },
+  { id: 'teacher', icon: '🍎', name: 'Maestro', desc: 'Creaste una guía didáctica' },
+];
+const AVATARS = ['🦉', '🦊', '🐢', '🐺', '🦅', '🧙', '🌻', '🐝', '🦋', '🐣', '🌙', '⭐'];
+const levelByAge = (age) => LEVELS.find((l) => age >= l.age[0] && age <= l.age[1])?.id || 'bachillerato';
+const profile = () => state.profiles?.find((p) => p.id === state.activeProfile) || state.profiles?.[0] || null;
+const levelInfo = () => LEVELS.find((l) => l.id === profile()?.level) || LEVELS[3];
+const kidMode = () => ['kinder', 'primaria'].includes(profile()?.level) || (Number(profile()?.age) > 0 && Number(profile()?.age) <= 10);
+const tutorEmoji = () => SKINS.find((s) => s.id === profile()?.skin)?.emoji || '🦉';
+const profilePayload = () => ({
+  level: profile()?.level || 'bachillerato', role: profile()?.role || 'student',
+  age: Number(profile()?.age) || 0, style: profile()?.style || 'mixto',
+  tone: profile()?.tone || 'amable', calm: profile()?.calm !== false,
+});
+const PROFILE_KEYS = ['courses', 'activeCourse', 'chat', 'chatMode', 'useMaterial', 'lang', 'srs', 'stats', 'groups'];
+const pickProfileData = (source) => Object.fromEntries(PROFILE_KEYS.map((k) => [k, source[k]]));
+const stripImages = (list) => (list || []).map((m) => ({ ...m, images: [] }));
+
+function freshProfileData() {
+  return {
+    courses: [], activeCourse: null, chat: [], chatMode: 'didactic', useMaterial: true,
+    lang: 'es', srs: {}, stats: { minutes: {}, quizResults: [] }, groups: [],
+  };
+}
+
+function makeProfile(meta = {}, data = freshProfileData()) {
+  return {
+    id: uid(),
+    name: String(meta.name || 'Mi perfil').slice(0, 60),
+    role: meta.role === 'teacher' ? 'teacher' : 'student',
+    age: Math.max(0, Math.min(99, Number(meta.age) || 0)),
+    level: meta.level || 'bachillerato',
+    style: meta.style || 'mixto',
+    tone: meta.tone || 'amable',
+    calm: meta.calm !== false,
+    avatar: meta.avatar || '🦉',
+    photo: meta.photo || '',
+    frame: meta.frame || 'none',
+    skin: meta.skin || 'jade',
+    points: Number(meta.points) || 0,
+    badges: Array.isArray(meta.badges) ? meta.badges.slice() : [],
+    createdAt: meta.createdAt || new Date().toISOString(),
+    save: pickProfileData({ ...freshProfileData(), ...data }),
+  };
+}
+
 function freshState() {
   return {
-    courses: [],
-    activeCourse: null,
-    chat: [],
-    chatMode: 'socratic',
-    useMaterial: true,
-    lang: 'es',
-    srs: {},
-    stats: { minutes: {}, quizResults: [] },
-    ui: { busy: false, toast: null, draft: '', images: [], cardSession: null, quiz: null, exam: null, models: [], sample: false },
+    ...freshProfileData(),
+    profiles: [],
+    activeProfile: null,
+    ui: {
+      busy: false, toast: null, draft: '', images: [], cardSession: null, quiz: null,
+      exam: null, models: [], sample: false, noPressure: false, breathing: null,
+      activeGroup: null, pendingPlanFiles: [], pendingMaterialFiles: [],
+    },
   };
 }
 
@@ -67,29 +158,133 @@ function loadState() {
     const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
     if (!stored || !Array.isArray(stored.courses)) return freshState();
     const base = freshState();
-    return {
-      ...base,
-      ...stored,
+    const merged = {
+      ...base, ...stored,
       stats: { ...base.stats, ...(stored.stats || {}) },
       ui: { ...base.ui, toast: null, busy: false },
     };
+    if (!Array.isArray(merged.profiles) || !merged.profiles.length) {
+      const first = makeProfile({ name: 'Mi perfil', level: stored.level || 'bachillerato' }, merged);
+      merged.profiles = [first];
+      merged.activeProfile = first.id;
+    }
+    const active = merged.profiles.find((p) => p.id === merged.activeProfile) || merged.profiles[0];
+    merged.activeProfile = active.id;
+    Object.assign(merged, pickProfileData({ ...base, ...(active.save || {}) }));
+    merged.stats = { ...base.stats, ...(merged.stats || {}) };
+    return merged;
   } catch {
     return freshState();
   }
 }
 
 let state = loadState();
+if (!state.profiles.length) {
+  const first = makeProfile({ name: 'Mi perfil' }, state);
+  state.profiles = [first];
+  state.activeProfile = first.id;
+}
 let config = null;
 let status = null;
 
 function save() {
-  const copy = { ...state, ui: { ...state.ui, images: [], toast: null, busy: false, draft: '' } };
-  copy.chat = state.chat.map((m) => ({ ...m, images: [] }));
+  const active = profile();
+  if (active) active.save = pickProfileData(state);
+  const snapshot = {
+    ...state,
+    chat: stripImages(state.chat),
+    profiles: state.profiles.map((p) => ({
+      ...p,
+      save: { ...p.save, chat: stripImages(p.save?.chat) },
+    })),
+    ui: { ...state.ui, images: [], toast: null, busy: false, draft: '', breathing: null },
+  };
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(copy));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
   } catch {
-    state.ui.toast = { text: 'No se pudo guardar en el navegador (almacenamiento lleno).', error: true };
+    state.ui.toast = { text: 'No se pudo guardar en el navegador (almacenamiento lleno). Prueba con fotos más pequeñas.', error: true };
   }
+}
+
+/** Suma puntos y desbloquea una insignia; el progreso nunca es una nota negativa. */
+function award(points, badgeId) {
+  const p = profile();
+  if (!p) return;
+  p.points = (p.points || 0) + points;
+  if (badgeId && !p.badges.includes(badgeId)) {
+    p.badges.push(badgeId);
+    const badge = BADGES.find((b) => b.id === badgeId);
+    state.ui.toast = { text: `🏅 ${badge?.name || 'Insignia'} desbloqueada · +${points} ✦`, error: false };
+  }
+  save();
+}
+
+function checkBadges() {
+  const p = profile();
+  if (!p) return;
+  const earned = [];
+  if (streak() >= 3) earned.push('streak-3');
+  if (state.chat.filter((m) => m.role === 'user').length >= 5) earned.push('curious');
+  if (Object.keys(state.srs).length >= 10) earned.push('cards-10');
+  const fresh = earned.find((id) => !p.badges.includes(id));
+  if (fresh && !state.ui.toast) {
+    p.badges.push(fresh);
+    const badge = BADGES.find((b) => b.id === fresh);
+    state.ui.toast = { text: `🏅 ${badge?.name || 'Insignia'} desbloqueada`, error: false };
+  }
+}
+
+let breathTimer = null;
+function stopBreathing() {
+  if (breathTimer) clearInterval(breathTimer);
+  breathTimer = null;
+  if (state.ui) state.ui.breathing = null;
+}
+
+/** Pausa guiada 4-4-6 para bajar la ansiedad antes de estudiar. */
+function startBreathing() {
+  stopBreathing();
+  const phases = [
+    { phase: 'Inhala 🌬️', hint: 'Cuenta hasta 4…' },
+    { phase: 'Mantén ✨', hint: 'Cuenta hasta 4…' },
+    { phase: 'Exhala 🌿', hint: 'Cuenta hasta 6…' },
+  ];
+  const lengths = [4, 4, 6];
+  let index = 0; let elapsed = 0;
+  state.ui.breathing = { ...phases[0], count: 0 };
+  render();
+  breathTimer = setInterval(() => {
+    if (!state.ui.breathing) return stopBreathing();
+    elapsed++;
+    if (elapsed >= lengths[index]) {
+      elapsed = 0;
+      index = (index + 1) % phases.length;
+      state.ui.breathing.count = (state.ui.breathing.count || 0) + 1;
+    }
+    Object.assign(state.ui.breathing, phases[index]);
+    render();
+  }, 1000);
+}
+
+function hydrateProfile(p) {
+  if (!p) return;
+  state.activeProfile = p.id;
+  Object.assign(state, pickProfileData({ ...freshProfileData(), ...(p.save || {}) }));
+  state.stats = { minutes: {}, quizResults: [], ...(state.stats || {}) };
+  state.ui.toast = null;
+  state.ui.cardSession = null;
+  state.ui.quiz = null;
+  state.ui.exam = null;
+}
+
+function switchProfile(id) {
+  const target = state.profiles.find((p) => p.id === id);
+  if (!target) return;
+  const current = profile();
+  if (current) current.save = pickProfileData(state);
+  hydrateProfile(target);
+  save();
+  render();
 }
 
 function toast(text, error = false) {
@@ -113,7 +308,7 @@ function route() {
   const parts = hash.replace(/^#\//, '').split('/').filter(Boolean);
   if (parts[0] !== 'app') return { app: false, view: 'home' };
   const view = parts[1] || 'home';
-  return { app: true, view: NAV.some((n) => n.id === view) ? view : 'home' };
+  return { app: true, view: navItems().some((n) => n.id === view) ? view : 'home' };
 }
 
 function course() {
@@ -161,7 +356,7 @@ function landing() {
   return `<div class="landing">
     <nav class="nav container">
       <a class="brand" href="#/"><span class="brand-mark">◈</span><span class="brand-name">Zoleva Calmécatl</span></a>
-      <div class="nav-links"><a href="#origen">Origen</a><a href="#glosario">Náhuatl</a><a href="#caracteristicas">Funciones</a><a href="#como-funciona">Cómo funciona</a><a href="#ia">Tu IA</a><a href="#faq">Preguntas</a></div>
+      <div class="nav-links"><a href="#origen">Origen</a><a href="#niveles">Niveles</a><a href="#glosario">Náhuatl</a><a href="#caracteristicas">Funciones</a><a href="#ia">Tu IA</a><a href="#faq">Preguntas</a></div>
       <div class="row"><button class="pill" data-action="toggle-lang">${state.lang === 'nah' ? '◈ Náhuatl' : '◈ Español'}</button><a class="btn primary small" href="#/app">Entrar gratis →</a></div>
     </nav>
 
@@ -227,6 +422,17 @@ function landing() {
       </div>
     </section>
 
+    <section class="block container" id="niveles">
+      <div class="section-head"><span class="eyebrow">De kínder a doctorado</span><h2>Una escuela para cada edad, también para quienes enseñan</h2><p>El tutor ajusta las palabras, la longitud de los pasos, el ritmo y el tono. Tú eliges cómo quieres aprender: con dibujos, hablando, practicando o leyendo.</p></div>
+      <div class="grid cols-4">
+        <div class="card"><div class="icon">🧸</div><h3>Kínder y primaria</h3><p>Juegos, emojis, pasos de un minuto y estrellas. Sin presión y con mucho ánimo.</p></div>
+        <div class="card"><div class="icon">🎒</div><h3>Secundaria y prepa</h3><p>Ejemplos claros, pistas antes que respuestas y simulacros para ganar confianza.</p></div>
+        <div class="card"><div class="icon">🎓</div><h3>Universidad, maestría y doctorado</h3><p>Rigor, matices, análisis crítico y síntesis a partir de tus propios materiales.</p></div>
+        <div class="card"><div class="icon">🍎</div><h3>Docentes</h3><p>Grupos locales, guías didácticas, rúbricas y juegos adaptados a cada nivel.</p></div>
+      </div>
+      <div class="card" style="margin-top:20px"><h3>Recompensas que no son un examen</h3><p>Ganas ✦ puntos por estudiar, desbloqueas insignias y cambias la apariencia de tu tutor con skins de jade, obsidiana, oro y más. Todo se guarda en tu perfil local: no hay clasificación, ni competencia con otros, ni castigos.</p></div>
+    </section>
+
     <section class="block container" id="ia">
       <div class="section-head"><span class="eyebrow">Tu IA, tus reglas</span><h2>Cámbiala cuando quieras. Incluso sin internet.</h2><p>Elige un proveedor en Ajustes. Si uno falla, Zoleva Calmécatl sigue funcionando con el modo demo.</p></div>
       <div class="provider-strip">
@@ -242,6 +448,9 @@ function landing() {
       <div class="section-head"><span class="eyebrow">Preguntas frecuentes</span><h2>Lo que probablemente te preguntes</h2></div>
       <details class="faq"><summary>¿Qué significa Zoleva Calmécatl?</summary><p>Es náhuatl: «escuela de élite mexica». El calmecac formaba a la élite con disciplina, memoria y conocimiento. Tomamos esa herencia como idea de estudio riguroso, pero abierta a todo el mundo y sin coste.</p></details>
       <details class="faq"><summary>¿Es realmente gratis?</summary><p>Sí. El código es MIT y no hay suscripción. La IA local es gratuita; los proveedores en nube tienen capas gratuitas o usan la clave/CLI que tú ya tienes.</p></details>
+      <details class="faq"><summary>¿Sirve para niños y para doctorado?</summary><p>Sí. El perfil guarda edad y nivel (de kínder a doctorado) y el tutor adapta vocabulario, extensión y ejemplos. También hay modos Juego y Sin presión para quienes se frustran fácil.</p></details>
+      <details class="faq"><summary>¿Pueden usarlo los docentes?</summary><p>Sí. Activa el rol Docente en Mi perfil: aparece un panel de grupos donde preparar guías didácticas, rúbricas y juegos, y donde resumir el progreso que exportan tus estudiantes.</p></details>
+      <details class="faq"><summary>¿Qué son los puntos y las skins?</summary><p>Son recompensas internas y locales: ganas ✦ por estudiar, desbloqueas insignias y cambias el compañero que te acompaña en el tutor. No hay pagos, clasificaciones ni competencia.</p></details>
       <details class="faq"><summary>¿Necesito saber programar?</summary><p>No. Solo abre la página web. Si quieres IA local, instala Ollama y descarga un modelo; en Ajustes puedes pegar la dirección y el nombre del modelo.</p></details>
       <details class="faq"><summary>¿Adónde van mis apuntes?</summary><p>A tu navegador y, si usas IA en la nube, al proveedor que elijas. No hay cuentas, telemetría ni servidores centrales: todo se guarda en tu equipo.</p></details>
       <details class="faq"><summary>¿Funciona en móvil?</summary><p>Sí. Es una PWA: ábrela en el navegador y añádela a la pantalla de inicio. En el mismo WiFi de tu ordenador puedes usar el modelo local.</p></details>
@@ -259,11 +468,12 @@ function appShell(view) {
   return `<div class="app">
     <aside class="sidebar">
       <a class="brand" href="#/"><span class="brand-mark">◈</span><span class="brand-name">Zoleva</span></a>
-      <nav>${NAV.map((item) => {
+      <nav>${navItems().map((item) => {
         const term = nah(item.id);
         return `<a class="nav-item ${view === item.id ? 'active' : ''}" href="#/app/${item.id}"><span class="ic">${item.icon}</span><span>${item.label}${term ? `<span class="nah-term">${esc(term[0])}</span>` : ''}</span></a>`;
       }).join('')}</nav>
       <div class="sidebar-foot">
+        <a class="profile-chip" href="#/app/perfil"><span class="avatar sm frame-${esc(profile()?.frame || 'none')}">${profile()?.photo ? `<img src="${esc(profile().photo)}" alt="" />` : esc(profile()?.avatar || '🦉')}</span><span><strong>${esc(profile()?.name || 'Mi perfil')}</strong><br /><span class="tiny">${profile()?.points || 0} ✦ · ${esc(levelInfo().label)} · ${profile()?.role === 'teacher' ? 'Docente' : 'Estudiante'}</span></span></a>
         <div class="status-pill"><span class="dot ${ready ? 'ok' : 'bad'}"></span><div><strong>${esc(active?.name || 'Cargando…')}</strong><br /><span class="tiny">${esc(status?.model || '')}</span></div></div>
         <a class="nav-item" href="#/app/settings"><span class="ic">⚙️</span>${ready ? 'IA conectada' : 'Configurar IA'}</a>
         <a class="nav-item" href="#/"><span class="ic">←</span>Página de inicio</a>
@@ -271,11 +481,12 @@ function appShell(view) {
     </aside>
     <main class="main">
       <header class="topbar"><div><h1>${esc(title)}</h1>${nah(view) ? `<div class="nah-line"><span class="nah-term">${esc(nah(view)[0])}</span><span class="nah-gloss">${esc(nah(view)[1])}</span></div>` : ''}<p>${esc(subtitle)}</p></div>
-        <div class="right"><button class="pill" data-action="toggle-lang" title="Alternar español / náhuatl">${state.lang === 'nah' ? '◈ Náhuatl' : '◈ Español'}</button><span class="pill">${esc(active?.name || 'IA')}</span>${state.ui.busy ? '<span class="spinner"></span>' : ''}</div>
+        <div class="right"><button class="pill" data-action="breathe" title="Pausa de respiración de 60 segundos">🌿 Respirar</button><a class="pill" href="#/app/perfil" title="Tus recompensas">✦ ${profile()?.points || 0}</a><button class="pill" data-action="toggle-lang" title="Alternar español / náhuatl">${state.lang === 'nah' ? '◈ Náhuatl' : '◈ Español'}</button><span class="pill">${esc(active?.name || 'IA')}</span>${state.ui.busy ? '<span class="spinner"></span>' : ''}</div>
       </header>
-      <nav class="mobile-nav">${NAV.map((item) => `<a class="tab ${view === item.id ? 'active' : ''}" href="#/app/${item.id}">${item.icon} ${item.label}</a>`).join('')}</nav>
+      <nav class="mobile-nav">${navItems().map((item) => `<a class="tab ${view === item.id ? 'active' : ''}" href="#/app/${item.id}">${item.icon} ${item.label}</a>`).join('')}</nav>
       <div id="content">${views[view] ? views[view]() : views.home()}</div>
     </main>
+    ${state.ui.breathing ? `<div class="breath-overlay" data-action="close-breathing"><div class="breath-box" data-stop="1"><div class="breath-circle"><span>${esc(state.ui.breathing.phase)}</span></div><p>${esc(state.ui.breathing.hint)}</p><div class="muted tiny">${state.ui.breathing.count} / 6 · pulsa fuera para salir</div></div></div>` : ''}
     ${state.ui.toast ? `<div class="toast ${state.ui.toast.error ? 'error' : ''}" data-action="close-toast">${esc(state.ui.toast.text)}</div>` : ''}
   </div>`;
 }
@@ -285,9 +496,19 @@ const views = {};
 
 views.home = () => {
   const c = course();
+  const k = kidMode();
+  const p = profile();
+  const header = `<div class="panel profile-banner">
+    <span class="avatar lg frame-${esc(p?.frame || 'none')} tutor-skin-${esc(p?.skin || 'jade')}">${p?.photo ? `<img src="${esc(p.photo)}" alt="Tu foto de perfil" />` : esc(p?.avatar || '🦉')}</span>
+    <div class="grow"><span class="eyebrow">${k ? 'Tu misión de hoy' : 'Tu espacio de estudio'}</span>
+      <h2 style="margin:6px 0">${k ? `¡Hola, ${esc(p?.name || 'explorador')}! 👋` : `Hola, ${esc(p?.name || 'estudiante')}.`}</h2>
+      <p class="muted small">${k ? 'Un pasito a la vez. Tu tutor te acompaña y no hay prisa.' : `${esc(levelInfo().label)} · sesiones sugeridas de ${levelInfo().minutes} min. Puedes ir a tu ritmo.`}</p>
+    </div>
+    <div class="row"><span class="pill gold">✦ ${p?.points || 0}</span><a class="btn small" href="#/app/perfil">Recompensas</a><button class="btn small" data-action="breathe">🌿 Respirar</button></div>
+  </div>`;
   if (!c) {
-    return `<div class="panel empty"><div style="font-size:44px">◈</div><h3>Empecemos con tu primer examen</h3>
-      <p>Crea un plan a partir de tus apuntes. Sin cuenta y sin pagar.</p><div class="actions" style="justify-content:center;margin-top:18px"><a class="btn primary" href="#/app/plan">Crear mi plan →</a><a class="btn ghost" href="#/app/tutor">Hablar con el tutor</a></div></div>`;
+    return `<div class="stack">${header}<div class="panel empty"><div style="font-size:44px">${esc(tutorEmoji())}</div><h3>${k ? '¡Vamos a crear tu primera misión!' : 'Empecemos con tu primer plan'}</h3>
+      <p>${k ? 'Pon un tema que te guste y tus apuntes. Hacemos pasos pequeños y ganas estrellas.' : 'Crea un plan a partir de tus apuntes. Sin cuenta y sin pagar.'}</p><div class="actions" style="justify-content:center;margin-top:18px"><a class="btn primary" href="#/app/plan">${k ? 'Crear mi misión →' : 'Crear mi plan →'}</a><a class="btn ghost" href="#/app/tutor">Hablar con el tutor</a></div></div></div>`;
   }
   const left = daysUntil(c.examDate);
   const done = c.plan?.topics?.filter((t) => t.status === 'done').length || 0;
@@ -299,8 +520,9 @@ views.home = () => {
     return { day: d, key: d.toISOString().slice(0, 10) };
   });
   return `<div class="stack">
+    ${header}
     <div class="panel">
-      <div class="row between"><div><span class="eyebrow">Tu examen</span><h2 style="margin:8px 0 4px">${esc(c.title || c.subject || 'Mi examen')}</h2><div class="muted small">${esc(c.subject || '')} · nivel ${esc(config?.level || 'bachillerato')}</div></div>
+      <div class="row between"><div><span class="eyebrow">${k ? 'Tu meta' : 'Tu examen'}</span><h2 style="margin:8px 0 4px">${esc(c.title || c.subject || 'Mi examen')}</h2><div class="muted small">${esc(c.subject || '')} · nivel ${esc(profile()?.level || config?.level || 'bachillerato')}</div></div>
         ${left !== null ? `<div class="center"><div style="font-family:'Space Grotesk';font-size:34px">${left >= 0 ? left : '—'}</div><div class="muted tiny">días restantes</div></div>` : ''}</div>
       <div class="bar" style="margin-top:18px"><i style="width:${percent}%"></i></div>
       <div class="row between tiny muted" style="margin-top:8px"><span>${done} de ${total} temas dominados</span><span>${percent} % del plan</span></div>
@@ -370,16 +592,23 @@ function planForm() {
 
 views.tutor = () => {
   const c = course();
-  const examples = ['Explícame este tema como si tuviera 12 años', 'Dame una pista, no la respuesta', 'Hazme un ejercicio parecido al de mis apuntes', 'Corrige mi razonamiento paso a paso'];
+  const k = kidMode();
+  const teacher = profile()?.role === 'teacher';
+  const examples = teacher
+    ? ['Dame una estrategia para enseñar este tema', 'Crea una pregunta de comprobación', '¿Cómo lo adaptaría a nivel kínder?', 'Propón una actividad de 10 minutos']
+    : k
+      ? ['🎨 Explícame esto con un dibujo imaginario', '🎲 Hagamos un juego con este tema', 'Dame una pista, no la respuesta', 'Explícame como si tuviera 7 años']
+      : ['Explica este tema paso a paso', 'Dame una pista, no la respuesta', 'Hazme un ejercicio parecido al de mis apuntes', 'Corrige mi razonamiento paso a paso'];
   return `<div class="chat-wrap">
     <div class="panel" style="padding:0;display:flex;flex-direction:column;overflow:hidden">
-      <div class="row" style="padding:12px 16px;border-bottom:1px solid var(--line)">
-        ${[['socratic', '🎯 Socrático'], ['solve', '🧮 Resolver'], ['tutor', '💬 Explicar']].map(([id, label]) => `<button class="tab ${state.chatMode === id ? 'active' : ''}" data-action="chat-mode" data-mode="${id}">${label}</button>`).join('')}
+      <div class="row wrap" style="padding:12px 16px;border-bottom:1px solid var(--line)">
+        <span class="avatar xs tutor-skin-${esc(profile()?.skin || 'jade')}" title="Tu tutor: ${esc(SKINS.find((s) => s.id === profile()?.skin)?.name || 'Búho de jade')}">${esc(tutorEmoji())}</span>
+        ${MODES.filter(([id]) => !(id === 'play' && !k && !teacher)).map(([id, label]) => `<button class="tab ${state.chatMode === id ? 'active' : ''}" data-action="chat-mode" data-mode="${id}">${label}</button>`).join('')}
         <label class="checkbox" style="margin-left:auto"><input type="checkbox" data-change="use-material" ${state.useMaterial ? 'checked' : ''} /> Usar mis apuntes</label>
       </div>
       <div class="chat-log">
-        ${state.chat.length ? state.chat.map((m) => `<div class="msg ${m.role}">${md(m.content)}${(m.images || []).map((i) => `<img src="${esc(i.base64)}" alt="imagen adjunta" />`).join('')}</div>`).join('') : `<div class="empty" style="margin:20px"><h3>¿Por dónde empezamos?</h3><p>Pregúntame lo que no entiendas. Te iré guiando con pistas.</p><div class="row" style="justify-content:center;margin-top:14px">${examples.map((e) => `<button class="btn small" data-action="use-example" data-text="${esc(e)}">${esc(e)}</button>`).join('')}</div></div>`}
-        ${state.ui.busy ? '<div class="msg assistant typing">Pensando…</div>' : ''}
+        ${state.chat.length ? state.chat.map((m) => `<div class="msg ${m.role}">${m.role === 'assistant' ? `<span class="tutor-face">${esc(tutorEmoji())}</span>` : ''}${md(m.content)}${(m.images || []).map((i) => `<img src="${esc(i.base64)}" alt="imagen adjunta" />`).join('')}</div>`).join('') : `<div class="empty" style="margin:20px"><span style="font-size:38px">${esc(tutorEmoji())}</span><h3>${k ? '¿Qué quieres descubrir hoy?' : '¿Por dónde empezamos?'}</h3><p>${k ? 'Pregunta sin miedo. Aquí no hay respuestas malas: solo pasitos.' : profile()?.calm ? 'Pregunta lo que quieras, sin prisas y sin presión.' : 'Pregúntame lo que no entiendas. Te iré guiando con pistas.'}</p><div class="row wrap" style="justify-content:center;margin-top:14px">${examples.map((e) => `<button class="btn small" data-action="use-example" data-text="${esc(e)}">${esc(e)}</button>`).join('')}</div></div>`}
+        ${state.ui.busy ? `<div class="msg assistant typing"><span class="tutor-face">${esc(tutorEmoji())}</span> Pensando…</div>` : ''}
       </div>
     </div>
     <div>
@@ -390,7 +619,7 @@ views.tutor = () => {
         <textarea id="chat-input" placeholder="Escribe tu pregunta… (Enter para enviar)" ${state.ui.busy ? 'disabled' : ''}>${esc(state.ui.draft)}</textarea>
         <button class="btn primary" data-action="chat-send" ${state.ui.busy ? 'disabled' : ''}>Enviar ↑</button>
       </div>
-      <div class="row between tiny muted" style="margin-top:8px"><span>${c ? `Contexto: ${esc(c.title || c.subject)}` : 'Sin material: puedes preguntar cualquier cosa'}</span><button class="btn small ghost" data-action="clear-chat">Limpiar chat</button></div>
+      <div class="row between tiny muted" style="margin-top:8px"><span>${c ? `Contexto: ${esc(c.title || c.subject)}` : 'Sin material: puedes preguntar cualquier cosa'} · adaptado a ${esc(levelInfo().label)}</span><div class="row"><button class="btn small ghost" data-action="breathe">🌿 Pausa</button><button class="btn small ghost" data-action="clear-chat">Limpiar chat</button></div></div>
     </div>
   </div>`;
 };
@@ -447,8 +676,8 @@ views.exam = () => {
   if (!exam.length) return `<div class="empty"><h3>Sin simulacro</h3><p>Genera un examen con tu material y practica con tiempo límite.</p><div style="margin-top:16px"><button class="btn primary" data-action="generate" data-kind="exam">✨ Generar simulacro</button></div></div>`;
   if (!session) {
     return `<div class="panel"><div class="panel-title"><h2>${exam.length} preguntas · ${exam.reduce((a, q) => a + q.points, 0)} puntos</h2><button class="btn small" data-action="generate" data-kind="exam">Regenerar</button></div>
-      <p class="muted">Tendrás ${c.examMinutes || 60} minutos. Las preguntas desarrolladas se corrigen con una rúbrica y, si quieres, con IA.</p>
-      <button class="btn primary" data-action="start-exam">Empezar simulacro →</button></div>`;
+      <p class="muted">${state.ui.noPressure ? 'Sin temporizador: práctica a tu ritmo, sin nota ni presión.' : `Tendrás ${c.examMinutes || 60} minutos. Las preguntas desarrolladas se corrigen con una rúbrica y, si quieres, con IA.`}</p>
+      <div class="row"><button class="btn primary" data-action="start-exam">${state.ui.noPressure ? 'Practicar sin presión →' : 'Empezar simulacro →'}</button><button class="btn small ghost" data-action="toggle-no-pressure">${state.ui.noPressure ? '⏱ Activar temporizador' : '🌿 Practicar sin presión'}</button></div></div>`;
   }
   if (session.result !== undefined) {
     return `<div class="panel"><h2>Resultado del simulacro</h2><p class="muted">Objetivas: ${session.result} / ${session.total} puntos. Las desarrolladas tienen su rúbrica debajo; puedes pedirle al tutor que las corrija.</p>
@@ -457,7 +686,8 @@ views.exam = () => {
         <div class="explanation"><strong>Rúbrica:</strong> ${esc(q.rubric || q.options[q.answer] || 'Cumple los puntos clave del tema.')}</div></div>`).join('')}
       <div class="row" style="margin-top:16px"><button class="btn primary" data-action="start-exam">Repetir</button><button class="btn" data-action="exit-exam">Volver</button></div></div>`;
   }
-  return `<form class="panel" data-form="submit-exam"><div class="row between"><h2 style="margin:0">Simulacro en curso</h2><span class="pill" id="exam-timer">${Math.floor((session.end - Date.now()) / 60000)}:${String(Math.floor(((session.end - Date.now()) / 1000) % 60)).padStart(2, '0')}</span></div>
+  return `<form class="panel" data-form="submit-exam"><div class="row between"><h2 style="margin:0">${state.ui.noPressure ? 'Práctica sin presión' : 'Simulacro en curso'}</h2><div class="row"><button class="btn small ghost" type="button" data-action="toggle-no-pressure">${state.ui.noPressure ? '⏱ Activar temporizador' : '🌿 Sin presión'}</button>${state.ui.noPressure ? '' : `<span class="pill" id="exam-timer">${Math.floor((session.end - Date.now()) / 60000)}:${String(Math.floor(((session.end - Date.now()) / 1000) % 60)).padStart(2, '0')}</span>`}</div></div>
+    ${state.ui.noPressure ? '<p class="muted small">Tómate el tiempo que necesites. Esto es práctica, no una nota.</p>' : ''}
     ${exam.map((q, i) => `<div class="question"><h4>${i + 1}. ${esc(q.question)} <span class="pill">${q.points} pts</span></h4>
       ${q.type === 'mcq' ? q.options.map((o, j) => `<label class="option"><input type="radio" name="e${i}" value="${j}" /> ${esc(o)}</label>`).join('') : `<textarea name="e${i}" placeholder="Escribe tu respuesta…" rows="3"></textarea>`}</div>`).join('')}
     <button class="btn primary" type="submit" style="margin-top:18px">Entregar examen</button></form>`;
@@ -496,6 +726,126 @@ views.progress = () => {
   <div class="panel"><h2>Historial de cuestionarios</h2>${state.stats.quizResults.slice(-8).reverse().map((r) => `<div class="topic"><div><h4>${r.result} / ${r.total} aciertos</h4><p>${new Date(r.at).toLocaleString('es')}</p></div></div>`).join('') || '<p class="muted">Sin resultados todavía.</p>'}</div></div>`;
 };
 
+const listBlock = (title, items) => items?.length
+  ? `<p class="small"><strong>${esc(title)}:</strong></p><ul class="muted small">${items.map((i) => `<li>${esc(i)}</li>`).join('')}</ul>`
+  : '';
+
+function renderGuide(resource) {
+  if (!resource) return '';
+  return `<div class="resource"><h3>${esc(resource.title)}</h3>
+    <p><strong>Objetivo:</strong> ${esc(resource.objective)}</p>
+    <p class="muted small">Duración sugerida: ${resource.duration} min</p>
+    ${listBlock('Materiales', resource.materials)}
+    ${resource.warmup ? `<p><strong>Inicio:</strong> ${esc(resource.warmup)}</p>` : ''}
+    ${(resource.development || []).map((s, i) => `<details class="faq" style="padding:10px 0"><summary>${i + 1}. ${esc(s.title)} · ${s.minutes} min</summary><p>${md(s.explanation)}</p><p class="small"><strong>Actividad:</strong> ${esc(s.activity)}</p></details>`).join('')}
+    ${resource.closure ? `<p><strong>Cierre:</strong> ${esc(resource.closure)}</p>` : ''}
+    ${resource.assessment ? `<p><strong>Evaluación:</strong> ${esc(resource.assessment)}</p>` : ''}
+    ${listBlock('Adaptaciones', resource.adaptations)}</div>`;
+}
+
+function renderRubric(resource) {
+  if (!resource) return '';
+  return `<div class="resource">${(resource.criteria || []).map((c) => `<div class="rubric-block"><h4>${esc(c.name)}</h4><div class="grid cols-3">${(c.levels || []).map((l) => `<div class="rubric-level"><strong>${esc(l.label)}</strong><p class="small muted">${esc(l.description)}</p></div>`).join('')}</div></div>`).join('')}${listBlock('Consejos', resource.tips)}</div>`;
+}
+
+function renderGame(resource) {
+  if (!resource) return '';
+  return `<div class="resource"><h3>🎲 ${esc(resource.name)}</h3>
+    <p class="muted small">${esc(resource.type)} · ${resource.duration} min</p>
+    ${listBlock('Materiales', resource.materials)}${listBlock('Instrucciones', resource.instructions)}${listBlock('Reglas', resource.rules)}${listBlock('Variantes', resource.variations)}</div>`;
+}
+
+views.perfil = () => {
+  const p = profile();
+  if (!p) return '<div class="panel empty"><h3>No hay perfil activo</h3></div>';
+  const skin = SKINS.find((s) => s.id === p.skin) || SKINS[0];
+  return `<div class="stack">
+    <div class="panel profile-banner">
+      <span class="avatar xl frame-${esc(p.frame || 'none')} tutor-skin-${esc(p.skin || 'jade')}">${p.photo ? `<img src="${esc(p.photo)}" alt="Tu foto de perfil" />` : esc(p.avatar)}</span>
+      <div class="grow"><span class="eyebrow">Mi perfil local</span><h2 style="margin:6px 0">${esc(p.name)}</h2>
+        <p class="muted small">${esc(levelInfo().label)} · ${p.role === 'teacher' ? 'Docente' : 'Estudiante'} · ${p.badges.length} insignias</p></div>
+      <div class="center"><div style="font-family:'Cinzel';font-size:30px;color:var(--violet-2)">✦ ${p.points}</div><div class="muted tiny">puntos ganados</div></div>
+    </div>
+
+    <div class="grid cols-2">
+      <form class="panel stack" data-form="save-profile">
+        <h2>Así aprendo</h2>
+        <label class="field">Nombre<input name="name" value="${esc(p.name)}" maxlength="60" required /></label>
+        <div class="grid cols-2">
+          <label class="field">Soy<select name="role"><option value="student" ${p.role === 'student' ? 'selected' : ''}>Estudiante</option><option value="teacher" ${p.role === 'teacher' ? 'selected' : ''}>Docente</option></select></label>
+          <label class="field">Edad<input name="age" type="number" min="0" max="99" value="${p.age || ''}" placeholder="Ej.: 10" /></label>
+          <label class="field">Nivel escolar<select name="level">${LEVELS.map((l) => `<option value="${l.id}" ${p.level === l.id ? 'selected' : ''}>${l.label}</option>`).join('')}</select></label>
+          <label class="field">Estilo de estudio<select name="style">${STYLES.map(([v, l]) => `<option value="${v}" ${p.style === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+        </div>
+        <label class="field">Tono del tutor<select name="tone">${TONES.map(([v, l]) => `<option value="${v}" ${p.tone === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+        <label class="checkbox"><input type="checkbox" name="calm" ${p.calm ? 'checked' : ''} /> Modo sin presión (pasos pequeños, sin prisas)</label>
+        <p class="muted small"> sugerencia: sesiones de ${levelInfo().minutes} min para ${esc(levelInfo().label)}.</p>
+        <button class="btn primary" type="submit">Guardar mi perfil</button>
+      </form>
+
+      <div class="panel stack">
+        <h2>Mi foto y mi avatar</h2>
+        <p class="muted small">La foto se reduce a 160 px y se guarda solo en este navegador.</p>
+        <div class="row"><input type="file" id="profile-photo" accept="image/*" hidden data-change="profile-photo" />
+          <button class="btn small" data-action="pick-photo">📷 Subir foto</button>
+          ${p.photo ? '<button class="btn small ghost" data-action="remove-photo">Quitar foto</button>' : ''}</div>
+        <div><span class="eyebrow">O elige un avatar</span><div class="row wrap" style="margin-top:10px">${AVATARS.map((a) => `<button class="emoji-choice ${p.avatar === a && !p.photo ? 'active' : ''}" data-action="choose-avatar" data-avatar="${esc(a)}">${a}</button>`).join('')}</div></div>
+        <div><span class="eyebrow">Marco de perfil</span><div class="row wrap" style="margin-top:10px">${FRAMES.map((f) => `<button class="shop-item ${p.frame === f.id ? 'active' : ''}" data-action="select-frame" data-id="${f.id}" ${f.cost > p.points && p.frame !== f.id ? 'disabled' : ''}><span class="frame-${f.id} avatar sm">${esc(p.avatar)}</span><strong>${esc(f.name)}</strong><span class="tiny">${f.cost ? `✦ ${f.cost}` : 'Gratis'}${f.cost > p.points && p.frame !== f.id ? ' · 🔒' : ''}</span></button>`).join('')}</div></div>
+      </div>
+    </div>
+
+    <div class="panel"><div class="panel-title"><h2>Viste a tu tutor</h2><span class="muted small">Los puntos se ganan estudiando, nunca se compran</span></div>
+      <div class="shop-grid">${SKINS.map((s) => `<button class="shop-item ${p.skin === s.id ? 'active' : ''}" data-action="select-skin" data-id="${s.id}" ${s.cost > p.points && p.skin !== s.id ? 'disabled' : ''}>
+        <span class="avatar lg tutor-skin-${s.id}">${s.emoji}</span><strong>${esc(s.name)}</strong><span class="tiny muted">${esc(s.desc)}</span><span class="pill ${s.cost <= p.points || p.skin === s.id ? 'done' : 'medium'}">${s.cost ? `✦ ${s.cost}` : 'Incluido'}${s.cost > p.points && p.skin !== s.id ? ' 🔒' : ''}</span></button>`).join('')}</div>
+      <p class="muted small" style="margin-top:14px">Compañero actual: <strong>${esc(skin.name)}</strong> ${skin.emoji}. Aparecerá en el tutor y en tu inicio.</p>
+    </div>
+
+    <div class="panel"><h2>Insignias</h2><div class="badge-grid">${BADGES.map((b) => `<div class="badge ${p.badges.includes(b.id) ? 'earned' : ''}"><span style="font-size:26px">${p.badges.includes(b.id) ? b.icon : '🔒'}</span><strong>${esc(b.name)}</strong><span class="tiny muted">${esc(b.desc)}</span></div>`).join('')}</div></div>
+
+    <div class="panel"><div class="panel-title"><h2>Perfiles en este equipo</h2><span class="muted small">Cada perfil guarda sus propios cursos y progreso</span></div>
+      <div class="row wrap">${state.profiles.map((item) => `<div class="profile-card ${item.id === p.id ? 'active' : ''}">
+        <button class="row" data-action="select-profile" data-id="${esc(item.id)}" style="border:0;background:none;color:inherit"><span class="avatar sm frame-${esc(item.frame || 'none')}">${item.photo ? `<img src="${esc(item.photo)}" alt="" />` : esc(item.avatar)}</span><span><strong>${esc(item.name)}</strong><br /><span class="tiny muted">${esc(item.level)} · ✦ ${item.points || 0}</span></span></button>
+        ${state.profiles.length > 1 ? `<button class="btn small ghost" data-action="delete-profile" data-id="${esc(item.id)}" title="Borrar perfil">×</button>` : ''}</div>`).join('')}</div>
+      <form class="row" data-form="create-profile" style="margin-top:16px"><input name="name" placeholder="Nombre del nuevo perfil" required maxlength="60" /><select name="level">${LEVELS.map((l) => `<option value="${l.id}" ${l.id === 'primaria' ? 'selected' : ''}>${l.label}</option>`).join('')}</select><button class="btn small primary" type="submit">+ Crear perfil</button></form>
+    </div>
+  </div>`;
+};
+
+views.docente = () => {
+  const groups = state.groups || [];
+  const g = groups.find((x) => x.id === state.ui.activeGroup) || groups[0] || null;
+  const selector = `<div class="panel"><div class="panel-title"><h2>Mis grupos</h2><span class="muted small">${groups.length} grupo(s) en este equipo</span></div>
+    ${groups.length ? `<div class="row wrap">${groups.map((item) => `<button class="pill ${g?.id === item.id ? 'gold' : ''}" data-action="select-group" data-id="${esc(item.id)}">🍎 ${esc(item.name)} · ${item.students?.length || 0} alumnos</button>`).join('')}</div>` : '<p class="muted">Aún no hay grupos. Crea uno abajo.</p>'}</div>`;
+  const createForm = `<form class="panel stack" data-form="create-group"><h3>Nuevo grupo</h3>
+    <div class="grid cols-2"><label class="field">Nombre del grupo<input name="name" placeholder="Ej.: 3º B - Biología" required /></label>
+      <label class="field">Nivel<select name="level">${LEVELS.map((l) => `<option value="${l.id}" ${l.id === 'secundaria' ? 'selected' : ''}>${l.label}</option>`).join('')}</select></label></div>
+    <label class="field">Alumnos (uno por línea)<textarea name="students" rows="4" placeholder="Ana\nLuis\nMarta"></textarea></label>
+    <label class="field">Material de la clase<textarea name="material" rows="4" placeholder="Pega aquí el tema o los apuntes que usarás con el grupo…"></textarea></label>
+    <button class="btn primary" type="submit">Crear grupo</button></form>`;
+  if (!g) return `<div class="stack">${selector}<div class="panel empty"><span style="font-size:38px">🍎</span><h3>Tu aula, también en local</h3><p>Crea un grupo para preparar guías didácticas, rúbricas y juegos adaptados a su nivel.</p></div>${createForm}</div>`;
+  return `<div class="stack">
+    ${selector}
+    <div class="panel"><div class="panel-title"><div><h2>${esc(g.name)}</h2><div class="muted small">${esc(LEVELS.find((l) => l.id === g.level)?.label || g.level)} · ${g.students?.length || 0} estudiantes</div></div>
+      <button class="btn small danger" data-action="delete-group" data-id="${esc(g.id)}">Borrar grupo</button></div>
+      <div class="row wrap"><button class="btn small primary" data-action="teacher-generate" data-id="${esc(g.id)}" data-kind="guide">📖 Guía didáctica</button>
+        <button class="btn small" data-action="teacher-generate" data-id="${esc(g.id)}" data-kind="rubric">📊 Rúbrica</button>
+        <button class="btn small" data-action="teacher-generate" data-id="${esc(g.id)}" data-kind="game">🎲 Juego de repaso</button></div>
+      ${state.ui.busy ? '<p class="muted small">Preparando material…</p>' : ''}
+    </div>
+    <div class="grid cols-2">
+      <form class="panel stack" data-form="add-students" data-id="${esc(g.id)}"><h3>Añadir estudiantes</h3><label class="field">Nombres (uno por línea)<textarea name="students" rows="3" placeholder="Ana\nLuis"></textarea></label><button class="btn small" type="submit">Añadir</button></form>
+      <div class="panel stack"><h3>Importar progreso</h3><p class="muted small">Cada estudiante exporta su JSON desde Ajustes. Aquí lo resumes sin cuentas ni servidores.</p>
+        <input type="file" id="group-progress" accept="application/json" hidden data-change="group-progress" />
+        <button class="btn small" data-action="import-progress" data-id="${esc(g.id)}">⬆ Cargar progreso</button></div>
+    </div>
+    <div class="panel"><h2>Seguimiento local</h2>${g.students?.length ? `<div class="table-wrap"><table class="data-table"><thead><tr><th>Estudiante</th><th>Minutos</th><th>Aciertos</th><th>Dominio</th><th>Actualizado</th></tr></thead><tbody>${g.students.map((s) => `<tr><td>${esc(s.name)}</td><td>${s.minutes || 0}</td><td>${s.accuracy ? `${s.accuracy} %` : '—'}</td><td>${s.mastery ? `${s.mastery} %` : '—'}</td><td>${s.updatedAt ? esc(new Date(s.updatedAt).toLocaleDateString('es')) : '—'}</td></tr>`).join('')}</tbody></table></div>` : '<p class="muted">Añade estudiantes para ver su seguimiento.</p>'}</div>
+    ${g.resources?.guide ? `<div class="panel"><div class="panel-title"><h2>Guía didáctica</h2><button class="btn small" data-action="teacher-generate" data-id="${esc(g.id)}" data-kind="guide">Regenerar</button></div>${renderGuide(g.resources.guide)}</div>` : ''}
+    ${g.resources?.rubric ? `<div class="panel"><div class="panel-title"><h2>Rúbrica</h2><button class="btn small" data-action="teacher-generate" data-id="${esc(g.id)}" data-kind="rubric">Regenerar</button></div>${renderRubric(g.resources.rubric)}</div>` : ''}
+    ${g.resources?.game ? `<div class="panel"><div class="panel-title"><h2>Juego de repaso</h2><button class="btn small" data-action="teacher-generate" data-id="${esc(g.id)}" data-kind="game">Regenerar</button></div>${renderGame(g.resources.game)}</div>` : ''}
+    ${createForm}
+  </div>`;
+};
+
 views.settings = () => {
   const providers = status?.providers || [];
   const active = config?.provider || 'demo';
@@ -519,10 +869,11 @@ views.settings = () => {
       </div>
       <label class="field">Comando personalizado (usa {prompt})<input name="customCommand" value="${esc(config?.cli?.customCommand || '')}" placeholder='mi-ia "{prompt}"' /></label>
       <div class="grid cols-2">
-        <label class="field">Modo del tutor<select name="chatMode">${[['socratic', 'Socrático (pistas)'], ['solve', 'Resolver paso a paso'], ['tutor', 'Explicar'], ['explain', 'Explicar']].map(([v, l]) => `<option value="${v}" ${config?.chatMode === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
-        <label class="field">Nivel<select name="level">${['primaria', 'eso', 'bachillerato', 'universidad', 'profesional'].map((v) => `<option value="${v}" ${config?.level === v ? 'selected' : ''}>${v}</option>`).join('')}</select></label>
+        <label class="field">Modo del tutor<select name="chatMode">${MODES.map(([v, l]) => `<option value="${v}" ${(state.chatMode || config?.chatMode) === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+        <label class="field">Nivel del curso<select name="level">${LEVELS.map((l) => `<option value="${l.id}" ${(profile()?.level || config?.level) === l.id ? 'selected' : ''}>${l.label}</option>`).join('')}</select></label>
         <label class="field">Interfaz<select name="lang"><option value="es" ${state.lang === 'es' ? 'selected' : ''}>Español</option><option value="nah" ${state.lang === 'nah' ? 'selected' : ''}>Náhuatl + Español (glosas)</option></select></label>
       </div>
+      <p class="muted small">Edad, estilo de aprendizaje, tono, avatar y recompensas se ajustan en <a href="#/app/perfil" style="color:var(--violet-2)">Mi perfil</a>.</p>
       <button class="btn primary" type="submit">Guardar ajustes</button>
     </div>
     <div class="panel"><h2>Instalación rápida de IA local</h2><pre class="muted small" style="white-space:pre-wrap;background:rgba(0,0,0,.3);padding:14px;border-radius:12px">ollama pull llama3.2
@@ -566,6 +917,8 @@ async function generate(kind) {
       topic: c.title,
       examDate: c.examDate,
       plan: c.plan?.topics || [],
+      minutes: c.examMinutes || 60,
+      ...profilePayload(),
     }),
   });
   if (res.warning) state.ui.toast = { text: res.warning, error: false };
@@ -576,8 +929,38 @@ async function generate(kind) {
   if (kind === 'quiz') { c.quiz = res.data; state.ui.quiz = null; }
   if (kind === 'exam') { c.exam = res.data; state.ui.exam = null; }
   if (kind === 'podcast') c.podcast = res.data;
-  if (!res.warning) toast(`✨ ${kind === 'flashcards' ? 'Tarjetas' : kind === 'quiz' ? 'Cuestionario' : kind === 'exam' ? 'Simulacro' : kind === 'podcast' ? 'Podcast' : kind === 'lessons' ? 'Lecciones' : 'Plan'} generado${kind === 'lessons' || kind === 'flashcards' ? 's' : ''}.`);
+  if (!res.warning) toast(`✨ ${kind === 'flashcards' ? 'Tarjetas' : kind === 'quiz' ? 'Cuestionario' : kind === 'exam' ? 'Simulacro' : kind === 'podcast' ? 'Podcast' : kind === 'lessons' ? 'Lecciones' : 'Plan'} generado${kind === 'lessons' || kind === 'flashcards' ? 's' : ''}. +2 ✦`);
+  award(2);
 }
+
+async function generateTeacher(kind, groupId) {
+  const g = state.groups.find((x) => x.id === groupId);
+  if (!g) return toast('No se encontró el grupo.', true);
+  const res = await api('/api/generate', {
+    method: 'POST',
+    body: JSON.stringify({
+      kind,
+      material: g.material || '',
+      subject: g.name,
+      topic: g.name,
+      goal: `${g.students?.length || 0} estudiantes de ${levelLabel(g.level)}`,
+      level: g.level,
+      role: 'teacher',
+      style: profile()?.style || 'mixto',
+      tone: profile()?.tone || 'amable',
+      calm: profile()?.calm !== false,
+    }),
+  });
+  if (!res.data) throw new Error('No se generó el material docente');
+  g.resources = { ...(g.resources || {}), [kind]: res.data };
+  const names = { guide: 'Guía didáctica', rubric: 'Rúbrica', game: 'Juego de repaso' };
+  const points = kind === 'guide' ? 5 : 2;
+  if (kind === 'guide') award(points, 'teacher');
+  else award(points);
+  if (!state.ui.toast) toast(`✨ ${names[kind]} lista. +${points} ✦`);
+}
+
+const levelLabel = (id) => LEVELS.find((l) => l.id === id)?.label || id;
 
 function scheduleCard(id, grade) {
   const s = state.srs[id] || { ease: 2.5, interval: 0, reps: 0, due: 0 };
@@ -603,9 +986,11 @@ async function sendChat() {
         messages: state.chat,
         mode: state.chatMode,
         material: state.useMaterial ? materialText() : '',
+        ...profilePayload(),
       }),
     });
     state.chat.push({ role: 'assistant', content: res.text || 'No obtuve respuesta.' });
+    award(1);
   } catch (error) {
     state.chat.pop();
     state.ui.draft = text;
@@ -626,10 +1011,74 @@ async function readFiles(files) {
   return output;
 }
 
+/** Reduce una foto a un cuadrado pequeño para no agotar localStorage. */
+function resizeImage(file, size = 160) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(size / img.width, size / img.height, 1);
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(img.width * scale));
+        canvas.height = Math.max(1, Math.round(img.height * scale));
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL('image/jpeg', 0.82));
+      };
+      img.onerror = reject;
+      img.src = reader.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 async function handleAction(action, data) {
   switch (action) {
     case 'close-toast': state.ui.toast = null; render(); break;
     case 'toggle-lang': state.lang = state.lang === 'nah' ? 'es' : 'nah'; save(); render(); break;
+    case 'breathe': startBreathing(); break;
+    case 'close-breathing': stopBreathing(); render(); break;
+    case 'toggle-no-pressure':
+      state.ui.noPressure = !state.ui.noPressure;
+      save(); render();
+      if (state.ui.exam && !state.ui.noPressure) startExamTimer();
+      break;
+    case 'select-profile': switchProfile(data.id); break;
+    case 'delete-profile': {
+      if (state.profiles.length <= 1) { toast('Debe quedar al menos un perfil.', true); break; }
+      if (!confirm('¿Borrar este perfil y todo su progreso?')) break;
+      const target = state.profiles.find((p) => p.id === data.id);
+      state.profiles = state.profiles.filter((p) => p.id !== data.id);
+      if (target?.id === state.activeProfile) hydrateProfile(state.profiles[0]);
+      save(); render(); break;
+    }
+    case 'select-skin': {
+      const p = profile(); const skin = SKINS.find((s) => s.id === data.id);
+      if (p && skin && (skin.cost <= p.points || p.skin === skin.id)) { p.skin = skin.id; save(); render(); toast(`Tu tutor ahora es ${skin.name} ${skin.emoji}`); }
+      break;
+    }
+    case 'select-frame': {
+      const p = profile(); const frame = FRAMES.find((f) => f.id === data.id);
+      if (p && frame && (frame.cost <= p.points || p.frame === frame.id)) { p.frame = frame.id; save(); render(); }
+      break;
+    }
+    case 'choose-avatar': {
+      const p = profile(); if (p) { p.avatar = data.avatar; p.photo = ''; save(); render(); }
+      break;
+    }
+    case 'pick-photo': $('#profile-photo')?.click(); break;
+    case 'remove-photo': { const p = profile(); if (p) { p.photo = ''; save(); render(); } break; }
+    case 'select-group': state.ui.activeGroup = data.id; save(); render(); break;
+    case 'delete-group':
+      if (confirm('¿Borrar este grupo y sus materiales?')) {
+        state.groups = state.groups.filter((g) => g.id !== data.id);
+        state.ui.activeGroup = state.groups[0]?.id || null;
+        save(); render(); break;
+      }
+      break;
+    case 'import-progress': $('#group-progress')?.click(); break;
+    case 'teacher-generate': busy(() => generateTeacher(data.kind, data.id)); break;
     case 'new-course': state.activeCourse = null; location.hash = '#/app/plan'; render(); break;
     case 'sample': state.ui.sample = !state.ui.sample; render(); break;
     case 'chat-mode': state.chatMode = data.mode; save(); render(); break;
@@ -645,6 +1094,7 @@ async function handleAction(action, data) {
     case 'grade-card': {
       const card = course()?.flashcards?.[state.ui.cardSession.index];
       if (card) scheduleCard(card.id, Number(data.grade));
+      if (Number(data.grade) >= 2) award(1);
       state.ui.cardSession.index++;
       state.ui.cardSession.flipped = false;
       if (state.ui.cardSession.index >= (course()?.flashcards?.length || 0)) state.ui.cardSession = null;
@@ -677,10 +1127,15 @@ async function handleAction(action, data) {
       });
       break;
     case 'export-data': {
-      const blob = new Blob([JSON.stringify({ courses: state.courses, chat: state.chat, srs: state.srs, stats: state.stats }, null, 2)], { type: 'application/json' });
+      const payload = {
+        version: 2, name: profile()?.name || '', courses: state.courses, chat: state.chat,
+        srs: state.srs, stats: state.stats, groups: state.groups,
+        profile: { ...profile(), save: undefined },
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
-      link.download = 'estudio-libre-datos.json';
+      link.download = 'zoleva-calmedcatl-datos.json';
       link.click();
       URL.revokeObjectURL(link.href);
       break;
@@ -688,9 +1143,13 @@ async function handleAction(action, data) {
     case 'import-data': $('#import-file')?.click(); break;
     case 'reset-data':
       if (confirm('¿Borrar todos los cursos, tarjetas y progreso? No se puede deshacer.')) {
+        stopBreathing();
         localStorage.removeItem(STORAGE_KEY);
         state = freshState();
-        toast('Datos borrados.');
+        const fresh = makeProfile({ name: 'Mi perfil' });
+        state.profiles = [fresh];
+        state.activeProfile = fresh.id;
+        save(); toast('Datos borrados.');
       }
       break;
     default: break;
@@ -745,6 +1204,7 @@ async function handleForm(form, data) {
         state.activeCourse = id;
         state.ui.pendingPlanFiles = [];
         state.ui.sample = false;
+        award(5, 'first-plan');
         if (generated.warning) state.ui.toast = { text: generated.warning, error: false };
         location.hash = '#/app/plan';
       });
@@ -772,6 +1232,9 @@ async function handleForm(form, data) {
       });
       state.ui.quiz = { answers, result, total: questions.length };
       state.stats.quizResults.push({ result, total: questions.length, at: new Date().toISOString() });
+      const gained = result * 2;
+      award(gained, result === questions.length && questions.length ? 'quiz-100' : null);
+      if (!state.ui.toast) state.ui.toast = { text: `¡Buen trabajo! ${result} de ${questions.length} aciertos · +${gained} ✦`, error: false };
       save(); render(); break;
     }
     case 'submit-exam': {
@@ -783,7 +1246,57 @@ async function handleForm(form, data) {
         if (q.type === 'mcq' && Number(answers[i]) === q.answer) result += q.points;
       });
       state.ui.exam = { answers, result, total: questions.filter((q) => q.type === 'mcq').reduce((a, q) => a + q.points, 0) };
+      award(10, 'exam-done');
+      if (!state.ui.toast) state.ui.toast = { text: `Simulacro entregado · +10 ✦. Revisa la rúbrica con calma.`, error: false };
       save(); render(); break;
+    }
+    case 'save-profile': {
+      const p = profile();
+      if (!p) break;
+      const name = String(data.get('name') || '').trim();
+      if (!name) { toast('Escribe tu nombre.', true); break; }
+      p.name = name;
+      p.role = data.get('role') === 'teacher' ? 'teacher' : 'student';
+      p.age = Math.max(0, Math.min(99, Number(data.get('age')) || 0));
+      p.level = LEVELS.some((l) => l.id === data.get('level')) ? data.get('level') : p.level;
+      p.style = STYLES.some(([v]) => v === data.get('style')) ? data.get('style') : p.style;
+      p.tone = TONES.some(([v]) => v === data.get('tone')) ? data.get('tone') : p.tone;
+      p.calm = data.get('calm') === 'on';
+      if (!p.age && LEVELS.find((l) => l.id === p.level)) p.age = LEVELS.find((l) => l.id === p.level).age[0];
+      save(); toast('Perfil guardado. El tutor se adapta a ti.'); break;
+    }
+    case 'create-profile': {
+      const name = String(data.get('name') || '').trim();
+      if (!name) break;
+      const level = data.get('level') || 'primaria';
+      const info = LEVELS.find((l) => l.id === level);
+      const created = makeProfile({ name, level, age: info?.age[0] || 0, role: 'student' });
+      state.profiles.push(created);
+      hydrateProfile(created);
+      save(); toast(`Perfil «${name}» creado.`); break;
+    }
+    case 'create-group': {
+      const name = String(data.get('name') || '').trim();
+      if (!name) break;
+      const students = String(data.get('students') || '').split(/\r?\n/).map((s) => s.trim()).filter(Boolean)
+        .map((s) => ({ id: uid(), name: s.slice(0, 80), minutes: 0, accuracy: 0, mastery: 0 }));
+      const group = {
+        id: uid(), name, level: data.get('level') || 'secundaria', students,
+        material: String(data.get('material') || '').slice(0, 60000),
+        resources: {}, createdAt: new Date().toISOString(),
+      };
+      state.groups = state.groups || [];
+      state.groups.push(group);
+      state.ui.activeGroup = group.id;
+      save(); toast(`Grupo «${name}» creado con ${students.length} estudiantes.`); break;
+    }
+    case 'add-students': {
+      const group = state.groups.find((x) => x.id === form.dataset.id);
+      if (!group) break;
+      const names = String(data.get('students') || '').split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
+      group.students = group.students || [];
+      names.forEach((name) => group.students.push({ id: uid(), name: name.slice(0, 80), minutes: 0, accuracy: 0, mastery: 0 }));
+      save(); toast(`${names.length} estudiante(s) añadido(s).`); break;
     }
     case 'save-settings':
       await busy(async () => {
@@ -803,6 +1316,12 @@ async function handleForm(form, data) {
         };
         await api('/api/config', { method: 'POST', body: JSON.stringify(payload) });
         state.lang = data.get('lang') === 'nah' ? 'nah' : 'es';
+        const p = profile();
+        if (p) {
+          if (LEVELS.some((l) => l.id === data.get('level'))) p.level = data.get('level');
+          p.chatMode = data.get('chatMode') || p.chatMode;
+        }
+        state.chatMode = data.get('chatMode') || state.chatMode;
         await refreshStatus();
         toast('Ajustes guardados.');
       });
@@ -818,7 +1337,12 @@ async function handleChange(event) {
   if (change === 'topic-status') {
     const c = course();
     const topic = c?.plan?.topics?.find((t) => t.id === el.dataset.id);
-    if (topic) { topic.status = el.value; save(); }
+    if (topic) {
+      const wasDone = topic.status === 'done';
+      topic.status = el.value;
+      if (el.value === 'done' && !wasDone) award(5);
+      save();
+    }
     return;
   }
   if (change === 'use-material') { state.useMaterial = el.checked; save(); return; }
@@ -828,8 +1352,46 @@ async function handleChange(event) {
     if (list) list.innerHTML = '';
     return;
   }
-  if (change === 'plan-file' || change === 'material-file' || change === 'chat-image' || change === 'import-file') {
+  if (change === 'plan-file' || change === 'material-file' || change === 'chat-image' || change === 'import-file' || change === 'profile-photo' || change === 'group-progress') {
     const files = Array.from(el.files || []);
+    if (change === 'profile-photo') {
+      const file = files[0];
+      if (!file) return;
+      const p = profile();
+      if (p) { p.photo = await resizeImage(file, 160); save(); toast('Foto de perfil guardada en este equipo.'); }
+      el.value = '';
+      return;
+    }
+    if (change === 'group-progress') {
+      const file = files[0];
+      if (!file) return;
+      try {
+        const raw = JSON.parse(await file.text());
+        const entries = Array.isArray(raw) ? raw : [raw];
+        const group = state.groups.find((x) => x.id === state.ui.activeGroup) || state.groups[0];
+        if (!group) throw new Error('Crea un grupo primero.');
+        let linked = 0;
+        for (const entry of entries) {
+          const fromStats = entry.stats?.minutes ? Object.values(entry.stats.minutes).reduce((a, b) => a + b, 0) : 0;
+          const minutes = Number(entry.minutes) || fromStats || 0;
+          const totals = entry.stats?.quizResults?.reduce((a, r) => a + r.total, 0) || 0;
+          const corrects = entry.stats?.quizResults?.reduce((a, r) => a + r.result, 0) || 0;
+          const accuracy = Number(entry.accuracy) || (totals ? Math.round(corrects / totals * 100) : 0);
+          const name = String(entry.name || entry.student || '').trim();
+          if (!name) continue;
+          let student = group.students.find((s) => s.name.trim().toLowerCase() === name.toLowerCase());
+          if (!student) {
+            student = { id: uid(), name: name.slice(0, 80), minutes: 0, accuracy: 0, mastery: 0 };
+            group.students.push(student);
+          }
+          Object.assign(student, { minutes, accuracy, mastery: Number(entry.mastery) || 0, updatedAt: new Date().toISOString() });
+          linked++;
+        }
+        save(); toast(`Progreso de ${linked} estudiante(s) importado.`);
+      } catch (error) { toast(error.message || 'Archivo no válido', true); }
+      el.value = '';
+      return;
+    }
     if (change === 'chat-image') {
       for (const file of files.slice(0, 4)) {
         state.ui.images.push({ mime: file.type || 'image/png', base64: await new Promise((resolve) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.readAsDataURL(file); }) });
@@ -843,7 +1405,16 @@ async function handleChange(event) {
         state.chat = imported.chat || [];
         state.srs = imported.srs || {};
         state.stats = imported.stats || state.stats;
+        state.groups = imported.groups || state.groups;
         state.activeCourse = imported.courses[0]?.id || null;
+        if (imported.profile && typeof imported.profile === 'object') {
+          const p = profile();
+          if (p) {
+            for (const key of ['name', 'role', 'age', 'level', 'style', 'tone', 'calm', 'avatar', 'photo', 'frame', 'skin']) {
+              if (imported.profile[key] !== undefined) p[key] = imported.profile[key];
+            }
+          }
+        }
         save(); toast('Datos importados.');
       } catch (error) { toast(error.message, true); }
     } else {
@@ -854,6 +1425,7 @@ async function handleChange(event) {
       const node = $(target);
       if (node) node.textContent = `${state.ui[key].map((f) => f.name).join(', ')} (${state.ui[key].length})`;
     }
+    el.value = '';
   }
 }
 
@@ -865,7 +1437,7 @@ async function refreshStatus() {
     config = c;
   } catch (error) {
     status = { providers: [], active: 'demo', model: 'demo' };
-    config = { provider: 'demo', model: '', apiKeys: {}, endpoints: {}, cli: {}, chatMode: 'socratic', level: 'bachillerato' };
+    config = { provider: 'demo', model: '', apiKeys: {}, endpoints: {}, cli: {}, chatMode: 'didactic', level: 'bachillerato' };
     state.ui.toast = { text: `No se pudo conectar con el servidor local: ${error.message}`, error: true };
   }
 }
@@ -873,6 +1445,7 @@ async function refreshStatus() {
 function render() {
   const root = $('#root');
   if (!root) return;
+  checkBadges();
   const current = route();
   root.innerHTML = current.app ? appShell(current.view) : landing();
   if (current.app && current.view === 'tutor') {
@@ -882,6 +1455,7 @@ function render() {
 }
 
 document.addEventListener('click', (event) => {
+  if (event.target.closest('[data-stop]')) return;
   const el = event.target.closest('[data-action]');
   if (!el) return;
   event.preventDefault();
@@ -911,6 +1485,7 @@ document.addEventListener('keydown', (event) => {
 window.addEventListener('hashchange', render);
 
 if (!location.hash) location.replace('#/');
+save();
 await refreshStatus();
 render();
 startExamTimer();

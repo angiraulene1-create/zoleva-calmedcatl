@@ -30,7 +30,7 @@ function defaultConfig() {
   return {
     provider: process.env.PROVIDER || 'demo',
     model: process.env.MODEL || '',
-    chatMode: 'socratic',
+    chatMode: 'didactic',
     level: 'bachillerato',
     apiKeys: {
       openrouter: process.env.OPENROUTER_API_KEY || '',
@@ -172,12 +172,17 @@ function cleanPayload(body) {
     hoursPerDay: Number(body.hoursPerDay) || 1,
     minutes: Number(body.minutes) || 60,
     plan: body.plan,
+    role: body.role === 'teacher' ? 'teacher' : 'student',
+    age: (Number(body.age) || 0) > 0 ? Math.max(3, Math.min(99, Number(body.age))) : 0,
+    style: ['visual', 'auditivo', 'kinestesico', 'lector', 'mixto'].includes(body.style) ? body.style : 'mixto',
+    tone: ['amable', 'jugueton', 'serio'].includes(body.tone) ? body.tone : 'amable',
+    calm: Boolean(body.calm),
   };
 }
 
 async function generate(res, body, config) {
   const kind = String(body.kind || '');
-  const allowed = ['plan', 'lessons', 'flashcards', 'quiz', 'exam', 'podcast'];
+  const allowed = ['plan', 'lessons', 'flashcards', 'quiz', 'exam', 'podcast', 'guide', 'rubric', 'game'];
   if (!allowed.includes(kind)) return json(res, 400, { error: `Tipo no soportado: ${kind}` });
   const payload = cleanPayload(body);
   const provider = String(body.provider || config.provider);
@@ -244,7 +249,7 @@ const server = http.createServer(async (req, res) => {
           ...current,
           provider: String(body.provider || current.provider),
           model: String(body.model ?? current.model),
-          chatMode: ['socratic', 'solve', 'tutor', 'explain'].includes(body.chatMode) ? body.chatMode : current.chatMode,
+          chatMode: ['socratic', 'solve', 'tutor', 'explain', 'didactic', 'calm', 'play'].includes(body.chatMode) ? body.chatMode : current.chatMode,
           level: String(body.level || current.level),
           apiKeys: { ...current.apiKeys },
           endpoints: { ...current.endpoints },
@@ -277,8 +282,14 @@ const server = http.createServer(async (req, res) => {
         const model = String(body.model || config.model || '');
         const payload = {
           messages,
-          mode: ['socratic', 'solve', 'tutor', 'explain'].includes(body.mode) ? body.mode : config.chatMode,
+          mode: ['socratic', 'solve', 'tutor', 'explain', 'didactic', 'calm', 'play'].includes(body.mode) ? body.mode : config.chatMode,
           material: String(body.material || '').slice(0, 60000),
+          level: String(body.level || config.level || 'bachillerato').slice(0, 60),
+          role: body.role === 'teacher' ? 'teacher' : 'student',
+          age: (Number(body.age) || 0) > 0 ? Math.max(3, Math.min(99, Number(body.age))) : 0,
+          style: ['visual', 'auditivo', 'kinestesico', 'lector', 'mixto'].includes(body.style) ? body.style : 'mixto',
+          tone: ['amable', 'jugueton', 'serio'].includes(body.tone) ? body.tone : 'amable',
+          calm: Boolean(body.calm),
         };
         const finalMessages = buildChatMessages(payload);
         // Conserva las imágenes adjuntas del último mensaje del usuario.

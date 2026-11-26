@@ -114,6 +114,42 @@ export function demoGenerate(kind, payload = {}) {
           { speaker: 'B', text: part.text },
         ]),
       };
+    case 'guide':
+      return {
+        title: `Guía didáctica: ${subject}`,
+        objective: `Comprender y aplicar los conceptos de ${subject} a partir del material aportado.`,
+        duration: 45,
+        materials: ['Material del docente', 'Cuaderno o pizarra'],
+        warmup: `Pregunta al grupo qué ya sabe sobre ${topicTitle(parts[0] || { title: subject }, 0)}.`,
+        development: parts.slice(0, 4).map((part, i) => ({
+          title: topicTitle(part, i),
+          explanation: part.text,
+          activity: i % 2 === 0 ? 'En parejas, expliquen la idea con sus palabras.' : 'Resuelvan un ejemplo juntos y comparen resultados.',
+          minutes: 10,
+        })),
+        closure: 'Cada estudiante escribe una idea que aprendió y una duda que le quede.',
+        assessment: 'Observa las explicaciones y revisa las tarjetas y el cuestionario generados.',
+        adaptations: ['Ofrece ejemplos concretos a quien lo necesite.', 'Propón un reto extra a quien ya domine el tema.'],
+      };
+    case 'rubric':
+      return {
+        criteria: [
+          { name: 'Comprensión del tema', levels: [{ label: 'Excelente', description: 'Explica el tema con sus palabras y ejemplos.' }, { label: 'En proceso', description: 'Explica lo esencial con ayuda.' }, { label: 'Por trabajar', description: 'Necesita repasar los conceptos básicos.' }] },
+          { name: 'Uso del material', levels: [{ label: 'Excelente', description: 'Relaciona todas las ideas con los apuntes.' }, { label: 'En proceso', description: 'Usa alguna idea de los apuntes.' }, { label: 'Por trabajar', description: 'No conecta su respuesta con el material.' }] },
+          { name: 'Claridad', levels: [{ label: 'Excelente', description: 'Ordena las ideas y se entiende sin esfuerzo.' }, { label: 'En proceso', description: 'Se entiende, pero falta orden.' }, { label: 'Por trabajar', description: 'Cuesta seguir el razonamiento.' }] },
+        ],
+        tips: ['Comparte la rúbrica antes de la actividad.', 'Destaca primero lo que cada estudiante hizo bien.'],
+      };
+    case 'game':
+      return {
+        name: `Carrera de ideas: ${subject}`,
+        type: 'juego de equipos cortos',
+        duration: 15,
+        materials: ['Tarjetas generadas', 'Papel y lápiz'],
+        instructions: parts.slice(0, 4).map((part, i) => `Ronda ${i + 1}: lee "${topicTitle(part, i)}" y responde en equipo.`),
+        rules: ['Todos participan por turnos.', 'Se vale preguntar al tutor.', 'Se celebra el esfuerzo, no solo el acierto.'],
+        variations: ['Jugar en parejas', 'Hacerlo por escrito', 'Convertirlo en adivinanza'],
+      };
     default:
       return {};
   }
@@ -122,8 +158,18 @@ export function demoGenerate(kind, payload = {}) {
 export function demoChat(messages = [], mode = 'tutor') {
   const last = [...messages].reverse().find((m) => m.role === 'user');
   const question = clean(last?.content || '').slice(0, 180);
+  const topic = question || 'tu tema';
   if (mode === 'socratic') {
-    return `Buena pregunta. Antes de darte la respuesta: **¿qué parte ya tienes clara?**\n\nPiensa en un ejemplo concreto de "${question || 'tu tema'}" y dime qué pasaría si cambias un dato. Si te atascas, te daré una pista.`;
+    return `Buena pregunta. Antes de darte la respuesta: **¿qué parte ya tienes clara?**\n\nPiensa en un ejemplo concreto de "${topic}" y dime qué pasaría si cambias un dato. Si te atascas, te daré una pista.`;
   }
-  return `Estoy en **modo demo** (sin IA), así que no puedo analizar "${question || 'tu pregunta'}" de verdad.\n\nPara tener un tutor real y gratuito:\n1. Instala Ollama y un modelo pequeño, o\n2. Elige OpenRouter / Gemini / Groq en **Ajustes**, o\n3. Selecciona un CLI (opencode, claude, codex, gemini).\n\nMientras tanto puedes usar los materiales de ejemplo y las tarjetas generadas en modo demo.`;
+  if (mode === 'play') {
+    return `🎲¡Reto! Dibuja en tu mente "${topic}" y elige: ¿A) es algo que se ve o B) algo que se siente?\n\n¡Anímate, no hay respuestas malas! 🌟`;
+  }
+  if (mode === 'calm') {
+    return `Gracias por preguntar. Respira hondo: no hay prisa. 🌿\n\nVamos solo con el primer pasito de "${topic}". Dime qué palabra te resulta más fácil y seguimos desde ahí.`;
+  }
+  if (mode === 'didactic') {
+    return `Vamos paso a paso con **${topic}**:\n\n1. Primero, ¿qué sabías ya de esto?\n2. Luego buscamos un ejemplo sencillo en tus apuntes.\n3. Al final lo explicas con tus palabras.\n\nEmpieza por el paso 1. ¡Vas muy bien!`;
+  }
+  return `Estoy en **modo demo** (sin IA), así que no puedo analizar "${topic}" de verdad.\n\nPara tener un tutor real y gratuito:\n1. Instala Ollama y un modelo pequeño, o\n2. Elige OpenRouter / Gemini / Groq en **Ajustes**, o\n3. Selecciona un CLI (opencode, claude, codex, gemini).\n\nMientras tanto puedes usar los materiales de ejemplo y las tarjetas generadas en modo demo.`;
 }
