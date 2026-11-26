@@ -43,6 +43,7 @@ function defaultConfig() {
       openaiCompatible: process.env.OPENAI_COMPATIBLE_BASE_URL || 'http://127.0.0.1:1234/v1',
     },
     cli: { customCommand: '' },
+    cloud: { url: process.env.ZOLEVA_CLOUD_URL || '', token: process.env.ZOLEVA_CLOUD_TOKEN || '' },
   };
 }
 
@@ -56,6 +57,7 @@ async function readConfig() {
       apiKeys: { ...base.apiKeys, ...(stored.apiKeys || {}) },
       endpoints: { ...base.endpoints, ...(stored.endpoints || {}) },
       cli: { ...base.cli, ...(stored.cli || {}) },
+      cloud: { ...base.cloud, ...(stored.cloud || {}) },
     };
   } catch {
     return defaultConfig();
@@ -104,6 +106,33 @@ async function readBody(req) {
   } catch {
     throw new Error('JSON no válido');
   }
+}
+
+/** Guardado opcional en la nube: el usuario elige URL y token; nunca es automático. */
+function cloudRequest(config, options = {}) {
+  const raw = String(config.cloud?.url || '').trim();
+  if (!raw) throw new Error('Configura primero la URL de tu nube en Mi cuenta.');
+  let url;
+  try {
+    url = new URL(raw);
+  } catch {
+    throw new Error('La URL de la nube no es válida.');
+  }
+  if (!['http:', 'https:'].includes(url.protocol)) throw new Error('La URL debe usar http o https.');
+  const token = String(config.cloud?.token || '').trim();
+  const localHost = ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname);
+  if (token && url.protocol === 'http:' && !localHost) {
+    throw new Error('Con token, la URL de la nube debe usar https (o http en localhost).');
+  }
+  return fetch(url, {
+    ...options,
+    signal: AbortSignal.timeout(20000),
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      'X-Zoleva-Client': 'calmedcatl',
+      ...(options.headers || {}),
+    },
+  });
 }
 
 async function probeOllama(config) {
@@ -239,6 +268,10 @@ const server = http.createServer(async (req, res) => {
         for (const [name, value] of Object.entries(safe.apiKeys)) {
           safe.apiKeys[name] = value ? '••••••••' : '';
         }
+        safe.cloud = {
+          ...safe.cloud,
+          token: safe.cloud.token ? '••••••••' : '',
+        };
         return json(res, 200, safe);
       }
 
@@ -254,6 +287,7 @@ const server = http.createServer(async (req, res) => {
           apiKeys: { ...current.apiKeys },
           endpoints: { ...current.endpoints },
           cli: { ...current.cli },
+          cloud: { ...current.cloud },
         };
         for (const name of Object.keys(current.apiKeys)) {
           const value = body.apiKeys?.[name];
@@ -264,9 +298,54 @@ const server = http.createServer(async (req, res) => {
           if (typeof body.endpoints?.[name] === 'string') next.endpoints[name] = body.endpoints[name].trim();
         }
         if (typeof body.cli?.customCommand === 'string') next.cli.customCommand = body.cli.customCommand.slice(0, 1000);
+        if (typeof body.cloud?.url === 'string') next.cloud.url = body.cloud.url.trim().slice(0, 500);
+        if (typeof body.cloud?.token === 'string' && body.cloud.token && !body.cloud.token.startsWith('••')) {
+          next.cloud.token = body.cloud.token.trim().slice(0, 500);
+        }
+        if (body.cloud?.token === '') next.cloud.token = '';
+        if (next.cloud.url) {
+          try {
+            const parsed = new URL(next.cloud.url);
+            if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('protocolo');
+          } catch {
+            return json(res, 400, { error: 'La URL de la nube debe empezar con http:// o https://' });
+          }
+        }
         if (!PROVIDERS.some((p) => p.id === next.provider)) return json(res, 400, { error: 'Proveedor no válido' });
         await writeConfig(next);
         return json(res, 200, { ok: true });
+      }
+
+      if (path === '/api/cloud/push' && req.method === 'POST') {
+        const body = await readBody(req);
+        if (!body.data || typeof body.data !== 'object') return json(res, 400, { error: 'No hay datos para subir.' });
+        const raw = JSON.stringify(body.data);
+        const bytes = Buffer.byteLength(raw);
+        if (bytes > 4 * 1024 * 1024) return json(res, 413, { error: 'El respaldo supera 4 MB. Quita fotos o conversaciones antiguas.' });
+        const response = await cloudRequest(config, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: raw,
+        });
+        if (!response.ok) throw new Error(`La nube respondió ${response.status}: ${(await response.text()).slice(0, 200)}`);
+        return json(res, 200, { ok: true, bytes, at: new Date().toISOString() });
+      }
+
+      if (path === '/api/cloud/pull' && req.method === 'POST') {
+        const response = await cloudRequest(config);
+        if (response.status === 404) return json(res, 200, { data: null, at: new Date().toISOString() });
+        if (!response.ok) throw new Error(`La nube respondió ${response.status}: ${(await response.text()).slice(0, 200)}`);
+        const text = await response.text();
+        if (Buffer.byteLength(text) > 8 * 1024 * 1024) throw new Error('El respaldo de la nube supera 8 MB.');
+        let data = null;
+        if (text) {
+          try {
+            data = JSON.parse(text);
+          } catch {
+            throw new Error('La nube no devolvió JSON válido.');
+          }
+        }
+        return json(res, 200, { data, at: new Date().toISOString() });
       }
 
       if (path === '/api/models' && req.method === 'GET') {

@@ -18,7 +18,7 @@ const NAV = [
   { id: 'exam', icon: '📝', label: 'Simulacro' },
   { id: 'materials', icon: '📚', label: 'Materiales' },
   { id: 'progress', icon: '📈', label: 'Progreso' },
-  { id: 'perfil', icon: '🎖️', label: 'Mi perfil' },
+  { id: 'cuenta', icon: '🎖️', label: 'Mi cuenta' },
   { id: 'docente', icon: '🍎', label: 'Docencia' },
   { id: 'settings', icon: '⚙️', label: 'Ajustes' },
 ];
@@ -32,7 +32,7 @@ const TITLES = {
   exam: ['Simulacro', 'Practica como si fuera el examen real.'],
   materials: ['Materiales', 'Tus apuntes son la fuente de todo lo que genera la IA.'],
   progress: ['Progreso', 'Constancia, dominio de temas y resultados.'],
-  perfil: ['Mi perfil', 'Tu avatar, tus recompensas y la forma en que aprendes.'],
+  cuenta: ['Mi cuenta', 'Tu avatar, tus recompensas, tu nube opcional y tu forma de aprender.'],
   docente: ['Docencia', 'Grupos, guías didácticas, rúbricas y juegos para tu clase.'],
   settings: ['Ajustes', 'Elige tu IA: local, gratuita o un CLI que ya tengas instalado.'],
 };
@@ -50,7 +50,7 @@ const NAHUATL = {
   materials: ['Amoxcalli', 'casa de los libros'],
   progress: ['Ixtlamachiliztli', 'hacer sabios los rostros'],
   settings: ['Tlacahuapahualiztli', 'arte de educar'],
-  perfil: ['Ixtli', 'rostro, identidad'],
+  cuenta: ['Ixtli', 'rostro, identidad'],
   docente: ['Tlamachtiliztli', 'enseñanza'],
 };
 const nah = (view) => (state.lang === 'nah' ? NAHUATL[view] : null);
@@ -77,12 +77,20 @@ const MODES = [
   ['didactic', '🧩 Didáctico'], ['socratic', '🎯 Socrático'], ['calm', '🌿 Sin presión'],
   ['play', '🎲 Juego'], ['solve', '🧮 Resolver'], ['tutor', '💬 Explicar'],
 ];
+// Las skins son atuendos del tutor 3D; los accesorios se compran aparte.
 const SKINS = [
-  { id: 'jade', name: 'Búho de jade', emoji: '🦉', cost: 0, desc: 'Tu compañero de siempre' },
-  { id: 'obsidiana', name: 'Lobo de obsidiana', emoji: '🐺', cost: 30, desc: 'Calma y concentración' },
-  { id: 'oro', name: 'Águila de oro', emoji: '🦅', cost: 80, desc: 'Para miradas agudas' },
-  { id: 'estelar', name: 'Zorro estelar', emoji: '🦊', cost: 150, desc: 'Curioso y veloz' },
-  { id: 'maestro', name: 'Tlamatinime', emoji: '🧙', cost: 300, desc: 'El sabio que enseña' },
+  { id: 'jade', name: 'Túnica de jade', emoji: '🦉', cost: 0, desc: 'Tu compañero de siempre' },
+  { id: 'obsidiana', name: 'Manto de obsidiana', emoji: '🐺', cost: 30, desc: 'Calma y concentración' },
+  { id: 'oro', name: 'Coraza de oro', emoji: '🦅', cost: 80, desc: 'Para miradas agudas' },
+  { id: 'estelar', name: 'Capa estelar', emoji: '🦊', cost: 150, desc: 'Curioso y veloz' },
+  { id: 'maestro', name: 'Atuendo Tlamatinime', emoji: '🧙', cost: 300, desc: 'El sabio que enseña' },
+];
+const ACCESSORIES = [
+  { id: 'none', name: 'Sin accesorio', icon: '—', cost: 0, desc: 'Look clásico' },
+  { id: 'penacho', name: 'Penacho', icon: '🪶', cost: 60, desc: 'Plumas de sabiduría' },
+  { id: 'gafas', name: 'Gafas de lectura', icon: '👓', cost: 90, desc: 'Para mirar de cerca' },
+  { id: 'amuleto', name: 'Amuleto de jade', icon: '📿', cost: 140, desc: 'Buena fortuna' },
+  { id: 'capa', name: 'Capa ligera', icon: '🧣', cost: 200, desc: 'Paranoches frías' },
 ];
 const FRAMES = [
   { id: 'none', name: 'Sin marco', cost: 0 }, { id: 'jade', name: 'Marco de jade', cost: 40 },
@@ -103,6 +111,29 @@ const profile = () => state.profiles?.find((p) => p.id === state.activeProfile) 
 const levelInfo = () => LEVELS.find((l) => l.id === profile()?.level) || LEVELS[3];
 const kidMode = () => ['kinder', 'primaria'].includes(profile()?.level) || (Number(profile()?.age) > 0 && Number(profile()?.age) <= 10);
 const tutorEmoji = () => SKINS.find((s) => s.id === profile()?.skin)?.emoji || '🦉';
+const tutorAccessory = () => ACCESSORIES.find((a) => a.id === profile()?.accessory) || ACCESSORIES[0];
+
+/** Tutor 3D ligero: capas CSS, sin WebGL ni dependencias. */
+function tutor3d(size = 'sm', skinId = profile()?.skin || 'jade', accessoryId = profile()?.accessory || 'none') {
+  const skin = SKINS.find((s) => s.id === skinId) || SKINS[0];
+  const accessory = ACCESSORIES.find((a) => a.id === accessoryId) || ACCESSORIES[0];
+  return `<span class="tutor3d ${size} skin-${esc(skin.id)} acc-${esc(accessory.id)}" role="img" aria-label="${esc(skin.name)} con ${esc(accessory.name)}">
+    <span class="t3d-stage"><span class="t3d-shadow"></span><span class="t3d-body">
+      <span class="t3d-cape"></span>
+      <span class="t3d-wing left"></span><span class="t3d-wing right"></span>
+      <span class="t3d-torso"><span class="t3d-outfit"></span><span class="t3d-amulet"></span></span>
+      <span class="t3d-head">
+        <span class="t3d-eye left"></span><span class="t3d-eye right"></span>
+        <span class="t3d-beak"></span><span class="t3d-glasses"></span><span class="t3d-crest"></span>
+      </span>
+    </span></span>
+  </span>`;
+}
+
+const tutorFaceHtml = (size = 'sm') => (profile()?.avatar3d === false
+  ? `<span class="tutor-emoji ${size}">${esc(tutorEmoji())}</span>`
+  : tutor3d(size));
+
 const profilePayload = () => ({
   level: profile()?.level || 'bachillerato', role: profile()?.role || 'student',
   age: Number(profile()?.age) || 0, style: profile()?.style || 'mixto',
@@ -122,7 +153,7 @@ function freshProfileData() {
 function makeProfile(meta = {}, data = freshProfileData()) {
   return {
     id: uid(),
-    name: String(meta.name || 'Mi perfil').slice(0, 60),
+    name: String(meta.name || 'Mi cuenta').slice(0, 60),
     role: meta.role === 'teacher' ? 'teacher' : 'student',
     age: Math.max(0, Math.min(99, Number(meta.age) || 0)),
     level: meta.level || 'bachillerato',
@@ -133,6 +164,8 @@ function makeProfile(meta = {}, data = freshProfileData()) {
     photo: meta.photo || '',
     frame: meta.frame || 'none',
     skin: meta.skin || 'jade',
+    accessory: meta.accessory || 'none',
+    avatar3d: meta.avatar3d !== false,
     points: Number(meta.points) || 0,
     badges: Array.isArray(meta.badges) ? meta.badges.slice() : [],
     createdAt: meta.createdAt || new Date().toISOString(),
@@ -164,7 +197,7 @@ function loadState() {
       ui: { ...base.ui, toast: null, busy: false },
     };
     if (!Array.isArray(merged.profiles) || !merged.profiles.length) {
-      const first = makeProfile({ name: 'Mi perfil', level: stored.level || 'bachillerato' }, merged);
+      const first = makeProfile({ name: 'Mi cuenta', level: stored.level || 'bachillerato' }, merged);
       merged.profiles = [first];
       merged.activeProfile = first.id;
     }
@@ -180,7 +213,7 @@ function loadState() {
 
 let state = loadState();
 if (!state.profiles.length) {
-  const first = makeProfile({ name: 'Mi perfil' }, state);
+  const first = makeProfile({ name: 'Mi cuenta' }, state);
   state.profiles = [first];
   state.activeProfile = first.id;
 }
@@ -204,6 +237,40 @@ function save() {
   } catch {
     state.ui.toast = { text: 'No se pudo guardar en el navegador (almacenamiento lleno). Prueba con fotos más pequeñas.', error: true };
   }
+}
+
+/** Respaldo completo de todas las cuentas locales para subir a la nube elegida. */
+function cloudPayload() {
+  const active = profile();
+  if (active) active.save = pickProfileData(state);
+  return {
+    app: 'zoleva-calmedcatl',
+    version: 3,
+    exportedAt: new Date().toISOString(),
+    activeProfile: state.activeProfile,
+    profiles: state.profiles.map((p) => ({
+      ...p,
+      save: { ...p.save, chat: stripImages(p.save?.chat) },
+    })),
+  };
+}
+
+function applyCloudData(data) {
+  if (!data || !Array.isArray(data.profiles) || !data.profiles.length) {
+    throw new Error('El respaldo de la nube no contiene cuentas válidas.');
+  }
+  const profiles = data.profiles.map((raw) => {
+    const made = makeProfile(raw, { ...freshProfileData(), ...(raw.save || {}) });
+    return {
+      ...made,
+      id: String(raw.id || made.id),
+      createdAt: raw.createdAt || made.createdAt,
+      save: { ...freshProfileData(), ...(raw.save || {}) },
+    };
+  });
+  state.profiles = profiles;
+  hydrateProfile(profiles.find((p) => p.id === data.activeProfile) || profiles[0]);
+  save();
 }
 
 /** Suma puntos y desbloquea una insignia; el progreso nunca es una nota negativa. */
@@ -307,7 +374,8 @@ function route() {
   if (!hash.startsWith('#/')) return { app: false, view: 'home' };
   const parts = hash.replace(/^#\//, '').split('/').filter(Boolean);
   if (parts[0] !== 'app') return { app: false, view: 'home' };
-  const view = parts[1] || 'home';
+  const requested = parts[1] || 'home';
+  const view = requested === 'perfil' ? 'cuenta' : requested;
   return { app: true, view: navItems().some((n) => n.id === view) ? view : 'home' };
 }
 
@@ -364,7 +432,7 @@ function landing() {
       <div>
         <span class="badge">◈ Del náhuatl: escuela de élite mexica · código abierto</span>
         <h1>${state.lang === 'nah' ? 'Calmecac: <span class="gradient-text">tlamatiliztli para todos.</span>' : 'La escuela de élite mexica, <span class="gradient-text">gratis y en tu bolsillo.</span>'}</h1>
-        <p class="lead"><strong>Zoleva Calmécatl</strong> convierte tus apuntes en un plan de examen, lecciones, tarjetas, cuestionarios y simulacros. Funciona con IA local, proveedores gratuitos o los CLIs que ya usas. Sin cuenta, sin pago y sin anuncios.</p>
+        <p class="lead"><strong>Zoleva Calmécatl</strong> convierte tus apuntes en un plan de examen, lecciones, tarjetas, cuestionarios y simulacros. Funciona con IA local, proveedores en la nube o los CLIs que ya usas. Tu cuenta es local: sin registro obligatorio, sin pago y sin anuncios.</p>
         ${state.lang === 'nah' ? '<p class="small muted">Calmecac = escuela superior · tlamatiliztli = saber activo, sabiduría.</p>' : ''}
         <div class="actions"><a class="btn primary" href="#/app">Entrar a la escuela →</a><a class="btn ghost" href="#origen">Conoce el nombre</a></div>
         <div class="chips"><span class="chip">◈ Offline con Ollama</span><span class="chip">◈ OpenRouter :free</span><span class="chip">◈ Gemini / Groq</span><span class="chip">◈ opencode / codex / claude</span></div>
@@ -430,7 +498,7 @@ function landing() {
         <div class="card"><div class="icon">🎓</div><h3>Universidad, maestría y doctorado</h3><p>Rigor, matices, análisis crítico y síntesis a partir de tus propios materiales.</p></div>
         <div class="card"><div class="icon">🍎</div><h3>Docentes</h3><p>Grupos locales, guías didácticas, rúbricas y juegos adaptados a cada nivel.</p></div>
       </div>
-      <div class="card" style="margin-top:20px"><h3>Recompensas que no son un examen</h3><p>Ganas ✦ puntos por estudiar, desbloqueas insignias y cambias la apariencia de tu tutor con skins de jade, obsidiana, oro y más. Todo se guarda en tu perfil local: no hay clasificación, ni competencia con otros, ni castigos.</p></div>
+      <div class="card" style="margin-top:20px"><h3>Recompensas que no son un examen</h3><p>Ganas ✦ puntos por estudiar, desbloqueas insignias y cambias la apariencia de tu tutor con skins de jade, obsidiana, oro y más. Todo se guarda en tu cuenta local: no hay clasificación, ni competencia con otros, ni castigos. Y si quieres, puedes subirlo a tu propia nube.</p></div>
     </section>
 
     <section class="block container" id="ia">
@@ -442,17 +510,17 @@ function landing() {
       <div class="card" style="margin-top:20px"><h3>Sin proveedor también funciona</h3><p>El modo demo genera planes, tarjetas y preguntas de ejemplo a partir de tu texto, sin red y sin claves. Es ideal para probar la app antes de configurar nada.</p></div>
     </section>
 
-    <section class="cta-band container"><div class="cta-inner"><div class="greca" aria-hidden="true" style="margin:0 auto 18px"></div><h2>Entra al calmecac. Cuesta cero.</h2><p>Sin tarjeta, sin cuenta, sin anuncios. Solo tú, tus apuntes y la IA que decidas usar.</p><div class="actions" style="justify-content:center"><a class="btn primary" href="#/app">Abrir Zoleva Calmécatl →</a><a class="btn ghost" href="#ia">Qué IA puedo usar</a></div></div></section>
+    <section class="cta-band container"><div class="cta-inner"><div class="greca" aria-hidden="true" style="margin:0 auto 18px"></div><h2>Entra al calmecac. Cuesta cero.</h2><p>Sin tarjeta, sin registro obligatorio y sin anuncios. Tu cuenta vive en tu equipo; tú decides si la respaldas en la nube.</p><div class="actions" style="justify-content:center"><a class="btn primary" href="#/app">Abrir Zoleva Calmécatl →</a><a class="btn ghost" href="#ia">Qué IA puedo usar</a></div></div></section>
 
     <section class="block container" id="faq">
       <div class="section-head"><span class="eyebrow">Preguntas frecuentes</span><h2>Lo que probablemente te preguntes</h2></div>
       <details class="faq"><summary>¿Qué significa Zoleva Calmécatl?</summary><p>Es náhuatl: «escuela de élite mexica». El calmecac formaba a la élite con disciplina, memoria y conocimiento. Tomamos esa herencia como idea de estudio riguroso, pero abierta a todo el mundo y sin coste.</p></details>
       <details class="faq"><summary>¿Es realmente gratis?</summary><p>Sí. El código es MIT y no hay suscripción. La IA local es gratuita; los proveedores en nube tienen capas gratuitas o usan la clave/CLI que tú ya tienes.</p></details>
-      <details class="faq"><summary>¿Sirve para niños y para doctorado?</summary><p>Sí. El perfil guarda edad y nivel (de kínder a doctorado) y el tutor adapta vocabulario, extensión y ejemplos. También hay modos Juego y Sin presión para quienes se frustran fácil.</p></details>
-      <details class="faq"><summary>¿Pueden usarlo los docentes?</summary><p>Sí. Activa el rol Docente en Mi perfil: aparece un panel de grupos donde preparar guías didácticas, rúbricas y juegos, y donde resumir el progreso que exportan tus estudiantes.</p></details>
+      <details class="faq"><summary>¿Sirve para niños y para doctorado?</summary><p>Sí. La cuenta guarda edad y nivel (de kínder a doctorado) y el tutor adapta vocabulario, extensión y ejemplos. También hay modos Juego y Sin presión para quienes se frustran fácil.</p></details>
+      <details class="faq"><summary>¿Pueden usarlo los docentes?</summary><p>Sí. Activa el rol Docente en Mi cuenta: aparece un panel de grupos donde preparar guías didácticas, rúbricas y juegos, y donde resumir el progreso que exportan tus estudiantes.</p></details>
       <details class="faq"><summary>¿Qué son los puntos y las skins?</summary><p>Son recompensas internas y locales: ganas ✦ por estudiar, desbloqueas insignias y cambias el compañero que te acompaña en el tutor. No hay pagos, clasificaciones ni competencia.</p></details>
       <details class="faq"><summary>¿Necesito saber programar?</summary><p>No. Solo abre la página web. Si quieres IA local, instala Ollama y descarga un modelo; en Ajustes puedes pegar la dirección y el nombre del modelo.</p></details>
-      <details class="faq"><summary>¿Adónde van mis apuntes?</summary><p>A tu navegador y, si usas IA en la nube, al proveedor que elijas. No hay cuentas, telemetría ni servidores centrales: todo se guarda en tu equipo.</p></details>
+      <details class="faq"><summary>¿Adónde van mis apuntes?</summary><p>A tu navegador y, si usas IA en la nube, al proveedor que elijas. No hay servidor central ni telemetría: tu cuenta y tus datos se guardan en tu equipo. El respaldo en la nube solo ocurre si tú lo activas.</p></details>
       <details class="faq"><summary>¿Funciona en móvil?</summary><p>Sí. Es una PWA: ábrela en el navegador y añádela a la pantalla de inicio. En el mismo WiFi de tu ordenador puedes usar el modelo local.</p></details>
     </section>
 
@@ -473,7 +541,7 @@ function appShell(view) {
         return `<a class="nav-item ${view === item.id ? 'active' : ''}" href="#/app/${item.id}"><span class="ic">${item.icon}</span><span>${item.label}${term ? `<span class="nah-term">${esc(term[0])}</span>` : ''}</span></a>`;
       }).join('')}</nav>
       <div class="sidebar-foot">
-        <a class="profile-chip" href="#/app/perfil"><span class="avatar sm frame-${esc(profile()?.frame || 'none')}">${profile()?.photo ? `<img src="${esc(profile().photo)}" alt="" />` : esc(profile()?.avatar || '🦉')}</span><span><strong>${esc(profile()?.name || 'Mi perfil')}</strong><br /><span class="tiny">${profile()?.points || 0} ✦ · ${esc(levelInfo().label)} · ${profile()?.role === 'teacher' ? 'Docente' : 'Estudiante'}</span></span></a>
+        <a class="profile-chip" href="#/app/cuenta"><span class="avatar sm frame-${esc(profile()?.frame || 'none')}">${profile()?.photo ? `<img src="${esc(profile().photo)}" alt="" />` : esc(profile()?.avatar || '🦉')}</span><span><strong>${esc(profile()?.name || 'Mi cuenta')}</strong><br /><span class="tiny">${profile()?.points || 0} ✦ · ${esc(levelInfo().label)} · ${profile()?.role === 'teacher' ? 'Docente' : 'Estudiante'}</span></span></a>
         <div class="status-pill"><span class="dot ${ready ? 'ok' : 'bad'}"></span><div><strong>${esc(active?.name || 'Cargando…')}</strong><br /><span class="tiny">${esc(status?.model || '')}</span></div></div>
         <a class="nav-item" href="#/app/settings"><span class="ic">⚙️</span>${ready ? 'IA conectada' : 'Configurar IA'}</a>
         <a class="nav-item" href="#/"><span class="ic">←</span>Página de inicio</a>
@@ -481,7 +549,7 @@ function appShell(view) {
     </aside>
     <main class="main">
       <header class="topbar"><div><h1>${esc(title)}</h1>${nah(view) ? `<div class="nah-line"><span class="nah-term">${esc(nah(view)[0])}</span><span class="nah-gloss">${esc(nah(view)[1])}</span></div>` : ''}<p>${esc(subtitle)}</p></div>
-        <div class="right"><button class="pill" data-action="breathe" title="Pausa de respiración de 60 segundos">🌿 Respirar</button><a class="pill" href="#/app/perfil" title="Tus recompensas">✦ ${profile()?.points || 0}</a><button class="pill" data-action="toggle-lang" title="Alternar español / náhuatl">${state.lang === 'nah' ? '◈ Náhuatl' : '◈ Español'}</button><span class="pill">${esc(active?.name || 'IA')}</span>${state.ui.busy ? '<span class="spinner"></span>' : ''}</div>
+        <div class="right"><button class="pill" data-action="breathe" title="Pausa de respiración de 60 segundos">🌿 Respirar</button><a class="pill" href="#/app/cuenta" title="Tus recompensas">✦ ${profile()?.points || 0}</a><button class="pill" data-action="toggle-lang" title="Alternar español / náhuatl">${state.lang === 'nah' ? '◈ Náhuatl' : '◈ Español'}</button><span class="pill">${esc(active?.name || 'IA')}</span>${state.ui.busy ? '<span class="spinner"></span>' : ''}</div>
       </header>
       <nav class="mobile-nav">${navItems().map((item) => `<a class="tab ${view === item.id ? 'active' : ''}" href="#/app/${item.id}">${item.icon} ${item.label}</a>`).join('')}</nav>
       <div id="content">${views[view] ? views[view]() : views.home()}</div>
@@ -499,16 +567,16 @@ views.home = () => {
   const k = kidMode();
   const p = profile();
   const header = `<div class="panel profile-banner">
-    <span class="avatar lg frame-${esc(p?.frame || 'none')} tutor-skin-${esc(p?.skin || 'jade')}">${p?.photo ? `<img src="${esc(p.photo)}" alt="Tu foto de perfil" />` : esc(p?.avatar || '🦉')}</span>
+    <span class="avatar lg frame-${esc(p?.frame || 'none')}">${p?.photo ? `<img src="${esc(p.photo)}" alt="Tu foto de cuenta" />` : esc(p?.avatar || '🦉')}</span>
     <div class="grow"><span class="eyebrow">${k ? 'Tu misión de hoy' : 'Tu espacio de estudio'}</span>
       <h2 style="margin:6px 0">${k ? `¡Hola, ${esc(p?.name || 'explorador')}! 👋` : `Hola, ${esc(p?.name || 'estudiante')}.`}</h2>
       <p class="muted small">${k ? 'Un pasito a la vez. Tu tutor te acompaña y no hay prisa.' : `${esc(levelInfo().label)} · sesiones sugeridas de ${levelInfo().minutes} min. Puedes ir a tu ritmo.`}</p>
     </div>
-    <div class="row"><span class="pill gold">✦ ${p?.points || 0}</span><a class="btn small" href="#/app/perfil">Recompensas</a><button class="btn small" data-action="breathe">🌿 Respirar</button></div>
+    <div class="row">${tutorFaceHtml('sm')}<span class="pill gold">✦ ${p?.points || 0}</span><a class="btn small" href="#/app/cuenta">Recompensas</a><button class="btn small" data-action="breathe">🌿 Respirar</button></div>
   </div>`;
   if (!c) {
-    return `<div class="stack">${header}<div class="panel empty"><div style="font-size:44px">${esc(tutorEmoji())}</div><h3>${k ? '¡Vamos a crear tu primera misión!' : 'Empecemos con tu primer plan'}</h3>
-      <p>${k ? 'Pon un tema que te guste y tus apuntes. Hacemos pasos pequeños y ganas estrellas.' : 'Crea un plan a partir de tus apuntes. Sin cuenta y sin pagar.'}</p><div class="actions" style="justify-content:center;margin-top:18px"><a class="btn primary" href="#/app/plan">${k ? 'Crear mi misión →' : 'Crear mi plan →'}</a><a class="btn ghost" href="#/app/tutor">Hablar con el tutor</a></div></div></div>`;
+    return `<div class="stack">${header}<div class="panel empty">${tutorFaceHtml('lg')}<h3>${k ? '¡Vamos a crear tu primera misión!' : 'Empecemos con tu primer plan'}</h3>
+      <p>${k ? 'Pon un tema que te guste y tus apuntes. Hacemos pasos pequeños y ganas estrellas.' : 'Crea un plan a partir de tus apuntes. Tu cuenta es local y no pagas nada.'}</p><div class="actions" style="justify-content:center;margin-top:18px"><a class="btn primary" href="#/app/plan">${k ? 'Crear mi misión →' : 'Crear mi plan →'}</a><a class="btn ghost" href="#/app/tutor">Hablar con el tutor</a></div></div></div>`;
   }
   const left = daysUntil(c.examDate);
   const done = c.plan?.topics?.filter((t) => t.status === 'done').length || 0;
@@ -602,13 +670,13 @@ views.tutor = () => {
   return `<div class="chat-wrap">
     <div class="panel" style="padding:0;display:flex;flex-direction:column;overflow:hidden">
       <div class="row wrap" style="padding:12px 16px;border-bottom:1px solid var(--line)">
-        <span class="avatar xs tutor-skin-${esc(profile()?.skin || 'jade')}" title="Tu tutor: ${esc(SKINS.find((s) => s.id === profile()?.skin)?.name || 'Búho de jade')}">${esc(tutorEmoji())}</span>
+        ${tutorFaceHtml('sm')}
         ${MODES.filter(([id]) => !(id === 'play' && !k && !teacher)).map(([id, label]) => `<button class="tab ${state.chatMode === id ? 'active' : ''}" data-action="chat-mode" data-mode="${id}">${label}</button>`).join('')}
         <label class="checkbox" style="margin-left:auto"><input type="checkbox" data-change="use-material" ${state.useMaterial ? 'checked' : ''} /> Usar mis apuntes</label>
       </div>
       <div class="chat-log">
-        ${state.chat.length ? state.chat.map((m) => `<div class="msg ${m.role}">${m.role === 'assistant' ? `<span class="tutor-face">${esc(tutorEmoji())}</span>` : ''}${md(m.content)}${(m.images || []).map((i) => `<img src="${esc(i.base64)}" alt="imagen adjunta" />`).join('')}</div>`).join('') : `<div class="empty" style="margin:20px"><span style="font-size:38px">${esc(tutorEmoji())}</span><h3>${k ? '¿Qué quieres descubrir hoy?' : '¿Por dónde empezamos?'}</h3><p>${k ? 'Pregunta sin miedo. Aquí no hay respuestas malas: solo pasitos.' : profile()?.calm ? 'Pregunta lo que quieras, sin prisas y sin presión.' : 'Pregúntame lo que no entiendas. Te iré guiando con pistas.'}</p><div class="row wrap" style="justify-content:center;margin-top:14px">${examples.map((e) => `<button class="btn small" data-action="use-example" data-text="${esc(e)}">${esc(e)}</button>`).join('')}</div></div>`}
-        ${state.ui.busy ? `<div class="msg assistant typing"><span class="tutor-face">${esc(tutorEmoji())}</span> Pensando…</div>` : ''}
+        ${state.chat.length ? state.chat.map((m) => `<div class="msg ${m.role}">${m.role === 'assistant' ? `<span class="tutor-face">${tutorFaceHtml('xs')}</span>` : ''}${md(m.content)}${(m.images || []).map((i) => `<img src="${esc(i.base64)}" alt="imagen adjunta" />`).join('')}</div>`).join('') : `<div class="empty" style="margin:20px">${tutorFaceHtml('md')}<h3>${k ? '¿Qué quieres descubrir hoy?' : '¿Por dónde empezamos?'}</h3><p>${k ? 'Pregunta sin miedo. Aquí no hay respuestas malas: solo pasitos.' : profile()?.calm ? 'Pregunta lo que quieras, sin prisas y sin presión.' : 'Pregúntame lo que no entiendas. Te iré guiando con pistas.'}</p><div class="row wrap" style="justify-content:center;margin-top:14px">${examples.map((e) => `<button class="btn small" data-action="use-example" data-text="${esc(e)}">${esc(e)}</button>`).join('')}</div></div>`}
+        ${state.ui.busy ? `<div class="msg assistant typing"><span class="tutor-face">${tutorFaceHtml('xs')}</span> Pensando…</div>` : ''}
       </div>
     </div>
     <div>
@@ -755,15 +823,18 @@ function renderGame(resource) {
     ${listBlock('Materiales', resource.materials)}${listBlock('Instrucciones', resource.instructions)}${listBlock('Reglas', resource.rules)}${listBlock('Variantes', resource.variations)}</div>`;
 }
 
-views.perfil = () => {
+views.cuenta = () => {
   const p = profile();
-  if (!p) return '<div class="panel empty"><h3>No hay perfil activo</h3></div>';
+  if (!p) return '<div class="panel empty"><h3>No hay cuenta activa</h3></div>';
   const skin = SKINS.find((s) => s.id === p.skin) || SKINS[0];
+  const accessory = tutorAccessory();
+  const cloudReady = Boolean(config?.cloud?.url);
   return `<div class="stack">
     <div class="panel profile-banner">
-      <span class="avatar xl frame-${esc(p.frame || 'none')} tutor-skin-${esc(p.skin || 'jade')}">${p.photo ? `<img src="${esc(p.photo)}" alt="Tu foto de perfil" />` : esc(p.avatar)}</span>
-      <div class="grow"><span class="eyebrow">Mi perfil local</span><h2 style="margin:6px 0">${esc(p.name)}</h2>
+      <span class="avatar xl frame-${esc(p.frame || 'none')}">${p.photo ? `<img src="${esc(p.photo)}" alt="Tu foto de cuenta" />` : esc(p.avatar)}</span>
+      <div class="grow"><span class="eyebrow">Mi cuenta local</span><h2 style="margin:6px 0">${esc(p.name)}</h2>
         <p class="muted small">${esc(levelInfo().label)} · ${p.role === 'teacher' ? 'Docente' : 'Estudiante'} · ${p.badges.length} insignias</p></div>
+      <div class="center">${tutorFaceHtml('md')}<div class="tiny muted">${esc(skin.name)} · ${esc(accessory.name)}</div></div>
       <div class="center"><div style="font-family:'Cinzel';font-size:30px;color:var(--violet-2)">✦ ${p.points}</div><div class="muted tiny">puntos ganados</div></div>
     </div>
 
@@ -779,8 +850,9 @@ views.perfil = () => {
         </div>
         <label class="field">Tono del tutor<select name="tone">${TONES.map(([v, l]) => `<option value="${v}" ${p.tone === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
         <label class="checkbox"><input type="checkbox" name="calm" ${p.calm ? 'checked' : ''} /> Modo sin presión (pasos pequeños, sin prisas)</label>
-        <p class="muted small"> sugerencia: sesiones de ${levelInfo().minutes} min para ${esc(levelInfo().label)}.</p>
-        <button class="btn primary" type="submit">Guardar mi perfil</button>
+        <label class="checkbox"><input type="checkbox" name="avatar3d" ${p.avatar3d !== false ? 'checked' : ''} /> Tutor 3D ligero (desactívalo en equipos lentos)</label>
+        <p class="muted small">Sugerencia: sesiones de ${levelInfo().minutes} min para ${esc(levelInfo().label)}.</p>
+        <button class="btn primary" type="submit">Guardar mi cuenta</button>
       </form>
 
       <div class="panel stack">
@@ -790,26 +862,47 @@ views.perfil = () => {
           <button class="btn small" data-action="pick-photo">📷 Subir foto</button>
           ${p.photo ? '<button class="btn small ghost" data-action="remove-photo">Quitar foto</button>' : ''}</div>
         <div><span class="eyebrow">O elige un avatar</span><div class="row wrap" style="margin-top:10px">${AVATARS.map((a) => `<button class="emoji-choice ${p.avatar === a && !p.photo ? 'active' : ''}" data-action="choose-avatar" data-avatar="${esc(a)}">${a}</button>`).join('')}</div></div>
-        <div><span class="eyebrow">Marco de perfil</span><div class="row wrap" style="margin-top:10px">${FRAMES.map((f) => `<button class="shop-item ${p.frame === f.id ? 'active' : ''}" data-action="select-frame" data-id="${f.id}" ${f.cost > p.points && p.frame !== f.id ? 'disabled' : ''}><span class="frame-${f.id} avatar sm">${esc(p.avatar)}</span><strong>${esc(f.name)}</strong><span class="tiny">${f.cost ? `✦ ${f.cost}` : 'Gratis'}${f.cost > p.points && p.frame !== f.id ? ' · 🔒' : ''}</span></button>`).join('')}</div></div>
+        <div><span class="eyebrow">Marco de cuenta</span><div class="row wrap" style="margin-top:10px">${FRAMES.map((f) => `<button class="shop-item ${p.frame === f.id ? 'active' : ''}" data-action="select-frame" data-id="${f.id}" ${f.cost > p.points && p.frame !== f.id ? 'disabled' : ''}><span class="frame-${f.id} avatar sm">${esc(p.avatar)}</span><strong>${esc(f.name)}</strong><span class="tiny">${f.cost ? `✦ ${f.cost}` : 'Gratis'}${f.cost > p.points && p.frame !== f.id ? ' · 🔒' : ''}</span></button>`).join('')}</div></div>
       </div>
     </div>
 
-    <div class="panel"><div class="panel-title"><h2>Viste a tu tutor</h2><span class="muted small">Los puntos se ganan estudiando, nunca se compran</span></div>
+    <div class="panel"><div class="panel-title"><h2>Viste a tu tutor 3D</h2><span class="muted small">Ropa y accesorios se ganan estudiando, nunca se compran</span></div>
+      <span class="eyebrow">Atuendos</span>
       <div class="shop-grid">${SKINS.map((s) => `<button class="shop-item ${p.skin === s.id ? 'active' : ''}" data-action="select-skin" data-id="${s.id}" ${s.cost > p.points && p.skin !== s.id ? 'disabled' : ''}>
-        <span class="avatar lg tutor-skin-${s.id}">${s.emoji}</span><strong>${esc(s.name)}</strong><span class="tiny muted">${esc(s.desc)}</span><span class="pill ${s.cost <= p.points || p.skin === s.id ? 'done' : 'medium'}">${s.cost ? `✦ ${s.cost}` : 'Incluido'}${s.cost > p.points && p.skin !== s.id ? ' 🔒' : ''}</span></button>`).join('')}</div>
-      <p class="muted small" style="margin-top:14px">Compañero actual: <strong>${esc(skin.name)}</strong> ${skin.emoji}. Aparecerá en el tutor y en tu inicio.</p>
+        ${tutor3d('sm', s.id, p.accessory)}<strong>${esc(s.name)}</strong><span class="tiny muted">${esc(s.desc)}</span><span class="pill ${s.cost <= p.points || p.skin === s.id ? 'done' : 'medium'}">${s.cost ? `✦ ${s.cost}` : 'Incluido'}${s.cost > p.points && p.skin !== s.id ? ' 🔒' : ''}</span></button>`).join('')}</div>
+      <span class="eyebrow" style="display:block;margin-top:18px">Accesorios</span>
+      <div class="shop-grid">${ACCESSORIES.map((a) => `<button class="shop-item ${p.accessory === a.id ? 'active' : ''}" data-action="select-accessory" data-id="${a.id}" ${a.cost > p.points && p.accessory !== a.id ? 'disabled' : ''}>
+        <span class="avatar lg acc-preview">${a.icon}</span><strong>${esc(a.name)}</strong><span class="tiny muted">${esc(a.desc)}</span><span class="pill ${a.cost <= p.points || p.accessory === a.id ? 'done' : 'medium'}">${a.cost ? `✦ ${a.cost}` : 'Incluido'}${a.cost > p.points && p.accessory !== a.id ? ' 🔒' : ''}</span></button>`).join('')}</div>
+      <p class="muted small" style="margin-top:14px">Tu compañero actual: <strong>${esc(skin.name)}</strong> con ${esc(accessory.name)} ${accessory.icon}.</p>
     </div>
+
+    <form class="panel stack" data-form="save-cloud">
+      <div class="panel-title"><h2>☁️ Guardado en la nube (opcional)</h2><span class="pill ${cloudReady ? 'done' : 'medium'}">${cloudReady ? 'configurada' : 'sin configurar'}</span></div>
+      <p class="muted small">Tu cuenta sigue siendo local. Solo si tú quieres, puedes subir un respaldo a tu propia URL (por ejemplo un JSON en tu Drive, servidor o Gist) con un token tuyo. Nada se envía automáticamente y no hay telemetría.</p>
+      <div class="grid cols-2">
+        <label class="field">URL del respaldo<input name="url" value="${esc(config?.cloud?.url || '')}" placeholder="https://ejemplo.com/zoleva.json" /></label>
+        <label class="field">Token (opcional)<input name="token" type="password" value="${esc(config?.cloud?.token || '')}" placeholder="••••••••" /></label>
+      </div>
+      <div class="row wrap"><button class="btn small primary" type="submit">Guardar nube</button>
+        <button class="btn small" type="button" data-action="cloud-test">Probar conexión</button>
+        <button class="btn small" type="button" data-action="cloud-push">⬆ Subir ahora</button>
+        <button class="btn small" type="button" data-action="cloud-pull">⬇ Bajar ahora</button></div>
+      <p class="muted tiny">El token se guarda en <code>.data/config.json</code> de este equipo y se envía como <code>Bearer</code> solo a esa URL. Bajar reemplaza los datos locales: se pedirá confirmación.</p>
+    </form>
 
     <div class="panel"><h2>Insignias</h2><div class="badge-grid">${BADGES.map((b) => `<div class="badge ${p.badges.includes(b.id) ? 'earned' : ''}"><span style="font-size:26px">${p.badges.includes(b.id) ? b.icon : '🔒'}</span><strong>${esc(b.name)}</strong><span class="tiny muted">${esc(b.desc)}</span></div>`).join('')}</div></div>
 
-    <div class="panel"><div class="panel-title"><h2>Perfiles en este equipo</h2><span class="muted small">Cada perfil guarda sus propios cursos y progreso</span></div>
+    <div class="panel"><div class="panel-title"><h2>Cuentas en este equipo</h2><span class="muted small">Cada cuenta guarda sus propios cursos y progreso</span></div>
       <div class="row wrap">${state.profiles.map((item) => `<div class="profile-card ${item.id === p.id ? 'active' : ''}">
         <button class="row" data-action="select-profile" data-id="${esc(item.id)}" style="border:0;background:none;color:inherit"><span class="avatar sm frame-${esc(item.frame || 'none')}">${item.photo ? `<img src="${esc(item.photo)}" alt="" />` : esc(item.avatar)}</span><span><strong>${esc(item.name)}</strong><br /><span class="tiny muted">${esc(item.level)} · ✦ ${item.points || 0}</span></span></button>
-        ${state.profiles.length > 1 ? `<button class="btn small ghost" data-action="delete-profile" data-id="${esc(item.id)}" title="Borrar perfil">×</button>` : ''}</div>`).join('')}</div>
-      <form class="row" data-form="create-profile" style="margin-top:16px"><input name="name" placeholder="Nombre del nuevo perfil" required maxlength="60" /><select name="level">${LEVELS.map((l) => `<option value="${l.id}" ${l.id === 'primaria' ? 'selected' : ''}>${l.label}</option>`).join('')}</select><button class="btn small primary" type="submit">+ Crear perfil</button></form>
+        ${state.profiles.length > 1 ? `<button class="btn small ghost" data-action="delete-profile" data-id="${esc(item.id)}" title="Borrar cuenta">×</button>` : ''}</div>`).join('')}</div>
+      <form class="row" data-form="create-profile" style="margin-top:16px"><input name="name" placeholder="Nombre de la nueva cuenta" required maxlength="60" /><select name="level">${LEVELS.map((l) => `<option value="${l.id}" ${l.id === 'primaria' ? 'selected' : ''}>${l.label}</option>`).join('')}</select><button class="btn small primary" type="submit">+ Crear cuenta</button></form>
     </div>
   </div>`;
 };
+
+// Alias para enlaces antiguos: la interfaz ya solo dice «Mi cuenta».
+views.perfil = views.cuenta;
 
 views.docente = () => {
   const groups = state.groups || [];
@@ -834,7 +927,7 @@ views.docente = () => {
     </div>
     <div class="grid cols-2">
       <form class="panel stack" data-form="add-students" data-id="${esc(g.id)}"><h3>Añadir estudiantes</h3><label class="field">Nombres (uno por línea)<textarea name="students" rows="3" placeholder="Ana\nLuis"></textarea></label><button class="btn small" type="submit">Añadir</button></form>
-      <div class="panel stack"><h3>Importar progreso</h3><p class="muted small">Cada estudiante exporta su JSON desde Ajustes. Aquí lo resumes sin cuentas ni servidores.</p>
+      <div class="panel stack"><h3>Importar progreso</h3><p class="muted small">Cada estudiante exporta su JSON desde Ajustes. Aquí lo resumes sin registro ni servidores centrales.</p>
         <input type="file" id="group-progress" accept="application/json" hidden data-change="group-progress" />
         <button class="btn small" data-action="import-progress" data-id="${esc(g.id)}">⬆ Cargar progreso</button></div>
     </div>
@@ -854,6 +947,7 @@ views.settings = () => {
     <div class="panel"><div class="panel-title"><h2>Proveedor de IA</h2><span class="pill ${selected?.ready ? 'done' : 'medium'}">${selected?.ready ? 'disponible' : 'no disponible'}</span></div>
       <label class="field">Proveedor<select name="provider" data-change="provider-change">${providers.map((p) => `<option value="${esc(p.id)}" ${active === p.id ? 'selected' : ''}>${esc(p.name)} ${p.ready ? '✓' : '· ' + esc(p.note)}</option>`).join('')}</select></label>
       ${selected?.note ? `<p class="muted small">${esc(selected.note)}</p>` : ''}
+      <p class="muted small">¿Tu celular o computadora no puede ejecutar IA local? Elige <strong>OpenRouter</strong> o <strong>Gemini</strong>: la generación ocurre en la nube y tu equipo solo muestra el resultado. Si prefieres no enviar apuntes a la nube, usa <strong>Demo sin IA</strong> u <strong>Ollama</strong>.</p>
       <label class="field">Modelo (o déjalo vacío para el predeterminado)<div class="row"><input name="model" list="model-list" value="${esc(config?.model || '')}" placeholder="${esc(status?.model || 'predeterminado')}" />
         <button class="btn small" type="button" data-action="load-models">Ver modelos</button></div><datalist id="model-list">${(state.ui.models || []).map((m) => `<option value="${esc(m)}"></option>`).join('')}</datalist></label>
       <div class="row"><button class="btn primary small" type="button" data-action="test-provider">Probar conexión</button><a class="btn small" href="#/app/tutor">Ir al tutor</a></div>
@@ -873,7 +967,7 @@ views.settings = () => {
         <label class="field">Nivel del curso<select name="level">${LEVELS.map((l) => `<option value="${l.id}" ${(profile()?.level || config?.level) === l.id ? 'selected' : ''}>${l.label}</option>`).join('')}</select></label>
         <label class="field">Interfaz<select name="lang"><option value="es" ${state.lang === 'es' ? 'selected' : ''}>Español</option><option value="nah" ${state.lang === 'nah' ? 'selected' : ''}>Náhuatl + Español (glosas)</option></select></label>
       </div>
-      <p class="muted small">Edad, estilo de aprendizaje, tono, avatar y recompensas se ajustan en <a href="#/app/perfil" style="color:var(--violet-2)">Mi perfil</a>.</p>
+      <p class="muted small">Edad, estilo de aprendizaje, tono, avatar y recompensas se ajustan en <a href="#/app/cuenta" style="color:var(--violet-2)">Mi cuenta</a>.</p>
       <button class="btn primary" type="submit">Guardar ajustes</button>
     </div>
     <div class="panel"><h2>Instalación rápida de IA local</h2><pre class="muted small" style="white-space:pre-wrap;background:rgba(0,0,0,.3);padding:14px;border-radius:12px">ollama pull llama3.2
@@ -1046,8 +1140,8 @@ async function handleAction(action, data) {
       break;
     case 'select-profile': switchProfile(data.id); break;
     case 'delete-profile': {
-      if (state.profiles.length <= 1) { toast('Debe quedar al menos un perfil.', true); break; }
-      if (!confirm('¿Borrar este perfil y todo su progreso?')) break;
+      if (state.profiles.length <= 1) { toast('Debe quedar al menos una cuenta.', true); break; }
+      if (!confirm('¿Borrar esta cuenta y todo su progreso?')) break;
       const target = state.profiles.find((p) => p.id === data.id);
       state.profiles = state.profiles.filter((p) => p.id !== data.id);
       if (target?.id === state.activeProfile) hydrateProfile(state.profiles[0]);
@@ -1056,6 +1150,14 @@ async function handleAction(action, data) {
     case 'select-skin': {
       const p = profile(); const skin = SKINS.find((s) => s.id === data.id);
       if (p && skin && (skin.cost <= p.points || p.skin === skin.id)) { p.skin = skin.id; save(); render(); toast(`Tu tutor ahora es ${skin.name} ${skin.emoji}`); }
+      break;
+    }
+    case 'select-accessory': {
+      const p = profile(); const accessory = ACCESSORIES.find((a) => a.id === data.id);
+      if (p && accessory && (accessory.cost <= p.points || p.accessory === accessory.id)) {
+        p.accessory = accessory.id; save(); render();
+        toast(`Tu tutor ya usa ${accessory.name} ${accessory.icon}`);
+      }
       break;
     }
     case 'select-frame': {
@@ -1126,6 +1228,30 @@ async function handleAction(action, data) {
         toast(res.ok ? `✓ Conexión correcta: ${res.text}` : `✗ ${res.error}`, !res.ok);
       });
       break;
+    case 'cloud-test':
+      busy(async () => {
+        const res = await api('/api/cloud/pull', { method: 'POST', body: '{}' });
+        toast(res.data ? '✓ Nube conectada: hay un respaldo disponible.' : '✓ Nube conectada. Todavía no hay respaldo.');
+      });
+      break;
+    case 'cloud-push':
+      busy(async () => {
+        const res = await api('/api/cloud/push', {
+          method: 'POST',
+          body: JSON.stringify({ data: cloudPayload() }),
+        });
+        toast(`⬆ Respaldo subido (${Math.round(res.bytes / 1024)} KB).`);
+      });
+      break;
+    case 'cloud-pull':
+      if (!confirm('¿Bajar el respaldo de la nube? Esto reemplaza las cuentas y el progreso guardados en este equipo.')) break;
+      busy(async () => {
+        const res = await api('/api/cloud/pull', { method: 'POST', body: '{}' });
+        if (!res.data) { toast('No hay respaldo en la nube todavía.', true); return; }
+        applyCloudData(res.data);
+        toast(`⬇ Respaldo bajado: ${state.profiles.length} cuenta(s) restaurada(s).`);
+      });
+      break;
     case 'export-data': {
       const payload = {
         version: 2, name: profile()?.name || '', courses: state.courses, chat: state.chat,
@@ -1146,7 +1272,7 @@ async function handleAction(action, data) {
         stopBreathing();
         localStorage.removeItem(STORAGE_KEY);
         state = freshState();
-        const fresh = makeProfile({ name: 'Mi perfil' });
+        const fresh = makeProfile({ name: 'Mi cuenta' });
         state.profiles = [fresh];
         state.activeProfile = fresh.id;
         save(); toast('Datos borrados.');
@@ -1263,7 +1389,8 @@ async function handleForm(form, data) {
       p.tone = TONES.some(([v]) => v === data.get('tone')) ? data.get('tone') : p.tone;
       p.calm = data.get('calm') === 'on';
       if (!p.age && LEVELS.find((l) => l.id === p.level)) p.age = LEVELS.find((l) => l.id === p.level).age[0];
-      save(); toast('Perfil guardado. El tutor se adapta a ti.'); break;
+      p.avatar3d = data.get('avatar3d') === 'on';
+      save(); toast('Cuenta guardada. El tutor se adapta a ti.'); break;
     }
     case 'create-profile': {
       const name = String(data.get('name') || '').trim();
@@ -1273,7 +1400,7 @@ async function handleForm(form, data) {
       const created = makeProfile({ name, level, age: info?.age[0] || 0, role: 'student' });
       state.profiles.push(created);
       hydrateProfile(created);
-      save(); toast(`Perfil «${name}» creado.`); break;
+      save(); toast(`Cuenta «${name}» creada.`); break;
     }
     case 'create-group': {
       const name = String(data.get('name') || '').trim();
@@ -1298,6 +1425,21 @@ async function handleForm(form, data) {
       names.forEach((name) => group.students.push({ id: uid(), name: name.slice(0, 80), minutes: 0, accuracy: 0, mastery: 0 }));
       save(); toast(`${names.length} estudiante(s) añadido(s).`); break;
     }
+    case 'save-cloud':
+      await busy(async () => {
+        await api('/api/config', {
+          method: 'POST',
+          body: JSON.stringify({
+            cloud: {
+              url: data.get('url') || '',
+              token: data.get('token') || '',
+            },
+          }),
+        });
+        await refreshStatus();
+        toast('Configuración de nube guardada. Nada se envía hasta que pulses Subir ahora.');
+      });
+      break;
     case 'save-settings':
       await busy(async () => {
         const payload = {
@@ -1358,7 +1500,7 @@ async function handleChange(event) {
       const file = files[0];
       if (!file) return;
       const p = profile();
-      if (p) { p.photo = await resizeImage(file, 160); save(); toast('Foto de perfil guardada en este equipo.'); }
+      if (p) { p.photo = await resizeImage(file, 160); save(); toast('Foto de cuenta guardada en este equipo.'); }
       el.value = '';
       return;
     }
@@ -1410,7 +1552,7 @@ async function handleChange(event) {
         if (imported.profile && typeof imported.profile === 'object') {
           const p = profile();
           if (p) {
-            for (const key of ['name', 'role', 'age', 'level', 'style', 'tone', 'calm', 'avatar', 'photo', 'frame', 'skin']) {
+            for (const key of ['name', 'role', 'age', 'level', 'style', 'tone', 'calm', 'avatar', 'photo', 'frame', 'skin', 'accessory', 'avatar3d']) {
               if (imported.profile[key] !== undefined) p[key] = imported.profile[key];
             }
           }

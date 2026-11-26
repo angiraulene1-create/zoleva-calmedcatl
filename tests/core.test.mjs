@@ -5,7 +5,7 @@ import {
   buildGenerateMessages, buildChatMessages, normalizeGenerated, parseModelJson,
   adaptationText, LEVELS,
 } from '../src/prompts.js';
-import { defaultModel, isCli } from '../src/providers.js';
+import { defaultModel, isCli, PROVIDERS } from '../src/providers.js';
 
 const MATERIAL = 'La fotosíntesis convierte la luz en energía química. Ocurre en los cloroplastos. La clorofila absorbe luz roja y azul.';
 
@@ -62,6 +62,15 @@ test('los proveedores CLI se identifican y tienen modelo opcional', () => {
   assert.equal(isCli('ollama'), false);
   assert.ok(defaultModel('ollama'));
   assert.equal(defaultModel('cli-custom'), '');
+});
+
+test('los proveedores en nube están señalados para equipos ligeros', () => {
+  const openrouter = PROVIDERS.find((p) => p.id === 'openrouter');
+  const gemini = PROVIDERS.find((p) => p.id === 'gemini');
+  const ollama = PROVIDERS.find((p) => p.id === 'ollama');
+  assert.match(openrouter.note, /Nube/i);
+  assert.match(gemini.note, /Nube/i);
+  assert.equal(ollama.kind, 'local');
 });
 
 test('los siete niveles cubren desde kínder hasta doctorado', () => {

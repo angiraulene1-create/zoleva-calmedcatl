@@ -14,24 +14,27 @@ Es una app de estudio que convierte tus apuntes en un **plan de examen, leccione
 
 ## ¿Por qué existe?
 
-Porque preparar un examen no debería exigir una suscripción, una cuenta ni entregar tus apuntes a una empresa. Aquí:
+Porque preparar un examen no debería exigir una suscripción, un registro obligatorio ni entregar tus apuntes a una empresa. Aquí:
 
-- **No hay cuenta, ni pago, ni anuncios, ni telemetría.**
-- Tus datos se quedan en tu navegador; la configuración de IA, en tu equipo.
-- Puedes usar **IA local sin internet** o elegir entre proveedores gratuitos y CLIs que ya tengas.
+- **Tu cuenta es local al empezar: no hay pago, anuncios ni telemetría.**
+- Tus datos se quedan en tu navegador; la configuración de IA y la nube opcional, en tu equipo.
+- Puedes usar **IA local sin internet**, **IA en la nube** o los CLIs que ya tengas.
+- Si quieres guardar tu progreso en la nube, tú pones la URL y el token: nada se sube automáticamente.
 - Si un proveedor falla, el **modo demo** sigue generando material de estudio a partir de tu texto.
 
 ## Funciones
 
 ### Para estudiantes
 
-- **Perfiles locales**: varios perfiles en el mismo equipo, cada uno con sus cursos, chat, tarjetas y progreso. Sin cuentas ni sincronización.
+- **Cuentas locales**: varias cuentas en el mismo equipo, cada una con sus cursos, chat, tarjetas y progreso. Sin registro obligatorio ni sincronización automática.
 - **De kínder a doctorado**: kínder, primaria, secundaria, bachillerato, universidad, maestría y doctorado. El nivel ajusta el vocabulario, la extensión de los pasos y la duración sugerida de las sesiones.
 - **Adaptación personal**: edad, estilo de aprendizaje (visual, auditivo, kinestésico, lector o mixto), tono (amable, juguetón o sobrio) y modo sin presión. La adaptación se envía al modelo en cada generación y chat.
+- **Tutor 3D ligero**: avatar con perspectiva CSS, flotación suave y capas de ropa/accesorios. No usa WebGL, funciona en móviles modestos y puede desactivarse en equipos lentos.
 - **Tutor didáctico y menos estresante**: modos **Didáctico**, **Socrático**, **Sin presión**, **Juego**, **Resolver** y **Explicar**. Empieza por lo que ya sabes, divide los pasos y celebra el esfuerzo. Acepta fotos de ejercicios con modelos con visión.
 - **Pausa guiada de respiración** de 4-4-6 y simulacros que pueden hacerse **sin temporizador**: practicar no tiene por qué ser un castigo.
-- **Recompensas internas**: ganas ✦ puntos por estudiar, desbloqueas insignias y cambias la apariencia de tu tutor con skins (jade, obsidiana, oro, estelar y Tlamatinime) y marcos de perfil. Todo queda en tu equipo; no hay compras, clasificaciones ni competencia.
-- **Foto de perfil y avatar**: la foto se reduce a 160 px y se guarda solo en el navegador.
+- **Recompensas internas**: ganas ✦ puntos por estudiar, desbloqueas insignias y vistes al tutor con **atuendos** (túnica de jade, manto de obsidiana, coraza de oro, capa estelar y atuendo Tlamatinime), **accesorios** (penacho, gafas, amuleto, capa) y marcos de cuenta. Todo queda en tu equipo; no hay compras, clasificaciones ni competencia.
+- **Foto de cuenta y avatar**: la foto se reduce a 160 px y se guarda solo en el navegador.
+- **Respaldo en la nube opcional**: en **Mi cuenta** puedes poner tu propia URL y token, subir o bajar el respaldo cuando quieras. Sirve para dispositivos que no ejecutan IA local o para cambiar de equipo; nunca es automático.
 - **Plan de examen**: fecha, asignatura, prioridades, temas y seguimiento.
 - **Tarjetas de memoria** con programación espaciada tipo SM-2: otra vez / difícil / bien / fácil.
 - **Cuestionarios corregidos** con explicación por respuesta.
@@ -52,7 +55,7 @@ Porque preparar un examen no debería exigir una suscripción, una cuenta ni ent
 - **Página de presentación** con el origen del nombre, glosario náhuatl, niveles, funciones y preguntas frecuentes.
 - **App web PWA** instalable en móvil y escritorio, con iconos PNG oficiales para Android, iOS y navegador.
 - **Modo bilingüe Español / Náhuatl**: glosas de términos documentados (`calmecac`, `tlamatiliztli`, `ixtlamachiliztli`, `amoxcalli`…) en la navegación y los encabezados, sin sustituir las etiquetas funcionales.
-- **Exportar / importar** tus datos en JSON y borrado total.
+- **Exportar / importar** tus datos en JSON, respaldo opcional en la nube y borrado total.
 
 ## IA intercambiable
 
@@ -61,9 +64,9 @@ Porque preparar un examen no debería exigir una suscripción, una cuenta ni ent
 | Demo | Gratis | No | Genera ejemplos a partir de tu texto, sin red |
 | Ollama | Gratis | No | Offline. `ollama pull llama3.2` (visión: `llama3.2-vision`) |
 | LM Studio / llama.cpp | Gratis | No | Cualquier endpoint OpenAI-compatible |
-| OpenRouter | Gratis\* | Sí | Modelos con sufijo `:free` |
-| Google Gemini | Gratis\* | Sí | Capa gratuita de la API |
-| Groq | Gratis\* | Sí | Capa gratuita de la API |
+| OpenRouter | Gratis\* | Sí | Modelos `:free`; recomendado para equipos ligeros |
+| Google Gemini | Gratis\* | Sí | Capa gratuita; buena opción en móviles |
+| Groq | Gratis\* | Sí | Capa gratuita y respuestas rápidas |
 | OpenCode CLI | Según tu sesión | No | `opencode run --format json` |
 | Codex CLI | Según tu sesión | No | `codex exec --json` |
 | Claude CLI | Suscripción | No | `claude -p --output-format json` |
@@ -72,7 +75,7 @@ Porque preparar un examen no debería exigir una suscripción, una cuenta ni ent
 
 \* Según los límites de cada proveedor.
 
-En **Ajustes → Proveedor de IA** cambias de proveedor, eliges modelo, pegas claves, pruebas la conexión y consultas los modelos disponibles. Las claves se guardan en `.data/config.json` (permisos `0600`) y solo se envían al proveedor seleccionado.
+En **Ajustes → Proveedor de IA** cambias de proveedor, eliges modelo, pegas claves, pruebas la conexión y consultas los modelos disponibles. Si tu dispositivo no soporta IA local, elige **OpenRouter** o **Gemini**: la generación sucede en la nube y tu equipo solo muestra el resultado. Las claves se guardan en `.data/config.json` (permisos `0600`) y solo se envían al proveedor seleccionado.
 
 ## Inicio rápido
 
@@ -92,10 +95,11 @@ HOST=0.0.0.0 PORT=3000 npm start
 
 ### Primeros pasos
 
-1. Entra en **Mi perfil** y elige nombre, rol (estudiante o docente), edad, nivel, estilo de estudio y tono del tutor.
-2. Crea un plan con tus apuntes. El tutor y los materiales se adaptan automáticamente a ese perfil.
+1. Entra en **Mi cuenta** y elige nombre, rol (estudiante o docente), edad, nivel, estilo de estudio y tono del tutor.
+2. Crea un plan con tus apuntes. El tutor y los materiales se adaptan automáticamente a esa cuenta.
 3. Estudia a tu ritmo: usa **Didáctico** o **Sin presión**, haz la pausa de respiración si hace falta, y gana ✦ puntos con cada avance.
-4. Canjea los puntos por una skin o un marco en **Mi perfil**. Si eres docente, activa el rol y prepara guías, rúbricas y juegos en **Docencia**.
+4. Canjea los puntos por atuendos, accesorios o un marco en **Mi cuenta**. Si eres docente, activa el rol y prepara guías, rúbricas y juegos en **Docencia**.
+5. Si quieres, configura tu nube en **Mi cuenta** y pulsa **Subir ahora**. Tu cuenta seguirá funcionando sin red.
 
 ### IA local con Ollama
 
@@ -116,6 +120,16 @@ mi-ia --json "{prompt}"
 
 El prompt se pasa entre comillas simples de forma segura. Si el comando no usa `{prompt}`, se lo envía por stdin.
 
+### Respaldo opcional en la nube
+
+En **Mi cuenta → Guardado en la nube (opcional)** puedes configurar una URL propia y un token. El servidor local solo habla con esa URL cuando pulsas **Probar conexión**, **Subir ahora** o **Bajar ahora**.
+
+- El endpoint debe aceptar `PUT` con JSON (subir) y `GET` (bajar). Un `404` en `GET` significa «todavía no hay respaldo».
+- Si pones token, se envía como `Authorization: Bearer …` solo a esa URL.
+- El token se guarda en `.data/config.json` de este equipo; la interfaz lo muestra enmascarado.
+- Bajar un respaldo pide confirmación porque reemplaza las cuentas locales.
+- El respaldo incluye todas las cuentas, cursos, chat, tarjetas, estadísticas y grupos. Las fotos de cuenta se conservan; las imágenes de ejercicios se omiten para no inflar el archivo.
+
 ## Instalar como app (PWA)
 
 En el navegador: **Menú → Instalar aplicación**. En Android e iOS: **Añadir a pantalla de inicio**. Puedes consultar tus datos sin conexión; la IA local necesita Ollama en marcha en la misma red.
@@ -131,7 +145,7 @@ zoleva-calmedcatl/
 │   └── demo.js               generador sin IA
 ├── public/
 │   ├── index.html            landing + app
-│   ├── app.js                perfiles, recompensas, docencia, vistas y acciones (localStorage)
+│   ├── app.js                cuentas, tutor 3D, recompensas, nube, docencia y vistas
 │   ├── styles.css            identidad visual obsidiana / jade / oro
 │   ├── sw.js                 service worker
 │   ├── manifest.webmanifest
@@ -153,8 +167,8 @@ npm test
 GitHub Actions ejecuta las pruebas en Node 18, 20 y 22 en cada push o PR. Para publicar una versión:
 
 ```bash
-git tag v0.2.0
-git push origin v0.2.0
+git tag v0.3.0
+git push origin v0.3.0
 ```
 
 El workflow `release.yml` crea una release con notas generadas automáticamente y tres archivos: código fuente en ZIP, código fuente en TAR.GZ y la PWA lista para desplegar (`-pwa.zip`).
@@ -177,11 +191,12 @@ Los términos náhuatl del glosario y del modo bilingüe provienen del **Breve v
 ## Límites conocidos (MVP)
 
 - Los PDFs no se leen directamente: copia el texto o sube una imagen de la página.
-- Las imágenes de ejercicios se guardan en `localStorage` solo mientras se envían; mantenlas pequeñas (≤ 2 MB). La foto de perfil se reduce a 160 px.
+- Las imágenes de ejercicios se guardan en `localStorage` solo mientras se envían; mantenlas pequeñas (≤ 2 MB). La foto de cuenta se reduce a 160 px.
 - La generación no hace streaming token a token: muestra «pensando» y después la respuesta completa.
 - El simulacro corrige automáticamente las objetivas; las desarrolladas muestran la rúbrica y puedes pedirle al tutor que las corrija. El modo sin presión quita el temporizador, pero no cambia la corrección.
-- Los puntos, skins e insignias son motivación local: no se compran, no se comparan y no afectan a tus notas.
-- No hay cuentas ni sincronización: exporta e importa el JSON para mover tus datos. El progreso docente se arma importando los JSON de cada estudiante.
+- Los puntos, atuendos, accesorios e insignias son motivación local: no se compran, no se comparan y no afectan a tus notas.
+- El tutor 3D es CSS con perspectiva, no un modelo WebGL: busca ligereza y compatibilidad antes que realismo.
+- No hay sincronización automática: exporta e importa JSON o usa tu propio respaldo en la nube. El progreso docente se arma importando los JSON de cada estudiante.
 
 ## Licencia
 
