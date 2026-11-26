@@ -11,30 +11,30 @@ const md = (text) => esc(text)
 
 const NAV = [
   { id: 'home', icon: '◈', label: 'Inicio' },
-  { id: 'tutor', icon: '💬', label: 'Tutor IA' },
-  { id: 'plan', icon: '🗺️', label: 'Plan de estudio' },
+  { id: 'tutor', icon: '💬', label: 'Preguntar al tutor' },
+  { id: 'plan', icon: '🗺️', label: 'Mi plan' },
   { id: 'cards', icon: '🧠', label: 'Tarjetas' },
-  { id: 'quiz', icon: '✅', label: 'Cuestionario' },
-  { id: 'exam', icon: '📝', label: 'Simulacro' },
-  { id: 'materials', icon: '📚', label: 'Materiales' },
-  { id: 'progress', icon: '📈', label: 'Progreso' },
+  { id: 'quiz', icon: '✅', label: 'Practicar' },
+  { id: 'exam', icon: '📝', label: 'Examen de práctica' },
+  { id: 'materials', icon: '📚', label: 'Mis apuntes' },
+  { id: 'progress', icon: '📈', label: 'Mi progreso' },
   { id: 'cuenta', icon: '🎖️', label: 'Mi cuenta' },
-  { id: 'docente', icon: '🍎', label: 'Docencia' },
+  { id: 'docente', icon: '🍎', label: 'Para docentes' },
   { id: 'settings', icon: '⚙️', label: 'Ajustes' },
 ];
 const navItems = () => NAV.filter((n) => n.id !== 'docente' || profile()?.role === 'teacher');
 const TITLES = {
-  home: ['Tu espacio de estudio', 'Sigue el plan, pregunta lo que no entiendas y mide tu progreso.'],
-  tutor: ['Tutor IA', 'Te guía paso a paso usando tus propios apuntes.'],
-  plan: ['Plan de estudio', 'De tus materiales a un camino claro hasta el examen.'],
-  cards: ['Tarjetas de memoria', 'Repetición espaciada: vuelven cuando estás a punto de olvidarlas.'],
-  quiz: ['Cuestionario', 'Comprueba lo que sabes y repasa los errores.'],
-  exam: ['Simulacro', 'Practica como si fuera el examen real.'],
-  materials: ['Materiales', 'Tus apuntes son la fuente de todo lo que genera la IA.'],
-  progress: ['Progreso', 'Constancia, dominio de temas y resultados.'],
-  cuenta: ['Mi cuenta', 'Tu avatar, tus recompensas, tu nube opcional y tu forma de aprender.'],
-  docente: ['Docencia', 'Grupos, guías didácticas, rúbricas y juegos para tu clase.'],
-  settings: ['Ajustes', 'Elige tu IA: local, gratuita o un CLI que ya tengas instalado.'],
+  home: ['Tu espacio de estudio', 'Empieza por el paso 1. Puedes ir a tu ritmo y sin presión.'],
+  tutor: ['Preguntar al tutor', 'Escribe lo que no entiendas: te da pistas, no respuestas.'],
+  plan: ['Mi plan', 'Tus apuntes se convierten en pasos pequeños hasta tu examen.'],
+  cards: ['Tarjetas de memoria', 'Una pregunta por lado. Vuelven cuando conviene repasarlas.'],
+  quiz: ['Practicar', 'Preguntas cortas con explicación. Equivocarte también ayuda.'],
+  exam: ['Examen de práctica', 'Practica como si fuera el examen real, o sin temporizador.'],
+  materials: ['Mis apuntes', 'Aquí guardas lo que el tutor usa para ayudarte.'],
+  progress: ['Mi progreso', 'Mira cuánto has avanzado, sin compararte con nadie.'],
+  cuenta: ['Mi cuenta', 'Tu nombre, tu nivel, tus recompensas y tus respaldos.'],
+  docente: ['Para docentes', 'Grupos, guías, rúbricas y juegos para tu clase.'],
+  settings: ['Ajustes', 'Elige tu IA. No necesitas configurar nada para empezar.'],
 };
 
 // Términos náhuatl documentados. Se muestran como glosas junto a la interfaz
@@ -165,6 +165,8 @@ function makeProfile(meta = {}, data = freshProfileData()) {
     skin: meta.skin || 'jade',
     accessory: meta.accessory || 'none',
     avatar3d: meta.avatar3d !== false,
+    onboarded: meta.onboarded === true,
+    guideDismissed: meta.guideDismissed === true,
     points: Number(meta.points) || 0,
     badges: Array.isArray(meta.badges) ? meta.badges.slice() : [],
     createdAt: meta.createdAt || new Date().toISOString(),
@@ -179,7 +181,7 @@ function freshState() {
     activeProfile: null,
     ui: {
       busy: false, toast: null, draft: '', images: [], cardSession: null, quiz: null,
-      exam: null, models: [], sample: false, noPressure: false, breathing: null,
+      exam: null, models: [], sample: false, noPressure: false, breathing: null, help: false,
       activeGroup: null, pendingPlanFiles: [], pendingMaterialFiles: [],
     },
   };
@@ -421,13 +423,75 @@ function daysUntil(date) {
   return Number.isFinite(diff) ? diff : null;
 }
 
+/* ------------------------- Guía para principiantes ------------------------- */
+function beginnerSteps() {
+  return [
+    {
+      n: 1,
+      title: 'Cuéntame quién eres',
+      text: 'Escribe tu nombre y elige tu nivel. Así el tutor te habla a tu medida.',
+      done: Boolean(profile()?.onboarded),
+      href: '#/app/cuenta',
+      cta: 'Configurar mi cuenta',
+    },
+    {
+      n: 2,
+      title: 'Crea tu plan con tus apuntes',
+      text: 'Pega tu texto o pulsa «Usar ejemplo» para ver cómo funciona.',
+      done: Boolean(course()),
+      href: '#/app/plan',
+      cta: 'Crear mi plan',
+    },
+    {
+      n: 3,
+      title: 'Habla con tu tutor',
+      text: 'Pregunta lo que no entiendas. Te dará pistas, no respuestas.',
+      done: state.chat.some((m) => m.role === 'user'),
+      href: '#/app/tutor',
+      cta: 'Hacer una pregunta',
+    },
+  ];
+}
+
+function beginnerChecklist() {
+  const p = profile();
+  if (!p || p.guideDismissed) return '';
+  const steps = beginnerSteps();
+  const done = steps.filter((step) => step.done).length;
+  return `<div class="panel stack onboard" id="guia">
+    <div class="panel-title"><div><span class="eyebrow">Guía para empezar</span><h2 style="margin:6px 0 0">Solo tres pasos y ya sabes usarlo</h2></div>
+      <div class="row"><span class="pill ${done === 3 ? 'done' : 'medium'}">${done} de 3</span><button class="btn small ghost" data-action="dismiss-guide" title="Ocultar esta guía">Ocultar</button></div></div>
+    <div class="onboard-steps">${steps.map((step) => `<div class="onboard-step ${step.done ? 'done' : ''}">
+      <span class="onboard-num">${step.done ? '✓' : step.n}</span>
+      <div class="grow"><strong>${esc(step.title)}</strong><p class="muted small">${esc(step.text)}</p></div>
+      <a class="btn small ${step.done ? 'ghost' : 'primary'}" href="${step.href}">${step.done ? 'Ver de nuevo' : `${esc(step.cta)} →`}</a>
+    </div>`).join('')}</div>
+    <p class="muted tiny">¿Te queda alguna duda? Pulsa <button class="linklike" data-action="show-help">❓ Cómo empezar</button> en la barra de arriba.</p>
+  </div>`;
+}
+
+function helpOverlay() {
+  if (!state.ui.help) return '';
+  const steps = beginnerSteps();
+  return `<div class="help-overlay"><div class="help-box stack">
+    <div class="panel-title"><div><span class="eyebrow">Guía rápida</span><h2 style="margin:6px 0 0">🌱 Así se usa Zoleva</h2></div><button class="btn small ghost" data-action="close-help">Cerrar ✕</button></div>
+    <div class="onboard-steps">${steps.map((step) => `<div class="onboard-step">
+      <span class="onboard-num">${step.n}</span>
+      <div class="grow"><strong>${esc(step.title)}</strong><p class="muted small">${esc(step.text)}</p></div>
+      <button class="btn small primary" data-action="help-go" data-href="${step.href}">Ir ahí →</button>
+    </div>`).join('')}</div>
+    <div class="panel compact"><p class="muted small" style="margin:0">Después puedes usar <strong>Tarjetas</strong> para repasar, <strong>Practicar</strong> con preguntas y <strong>Examen de práctica</strong> para medirte. Todo se guarda en tu navegador: sin registro obligatorio, sin pago y sin anuncios.</p></div>
+    <p class="muted tiny">Si algo no funciona, prueba Ajustes: con el modo demo puedes ver la app entera sin configurar IA.</p>
+  </div></div>`;
+}
+
 /* ------------------------- Landing ------------------------- */
 function landing() {
   return `<div class="landing">
     <nav class="nav container">
       <a class="brand" href="#/"><img class="brand-icon" src="/icons/app-icon.svg" alt="" /><span class="brand-name">Zoleva Calmécatl</span></a>
       <div class="nav-links"><a href="#origen">Origen</a><a href="#niveles">Niveles</a><a href="#glosario">Náhuatl</a><a href="#caracteristicas">Funciones</a><a href="#ia">Tu IA</a><a href="#faq">Preguntas</a></div>
-      <div class="row"><button class="pill" data-action="toggle-lang">${state.lang === 'nah' ? '◈ Náhuatl' : '◈ Español'}</button><a class="btn primary small" href="#/app">Entrar gratis →</a></div>
+      <div class="row"><button class="pill" data-action="show-help">❓ Cómo empezar</button><button class="pill" data-action="toggle-lang">${state.lang === 'nah' ? '◈ Náhuatl' : '◈ Español'}</button><a class="btn primary small" href="#/app">Entrar gratis →</a></div>
     </nav>
 
     <header class="hero container"><div class="hero-grid">
@@ -437,7 +501,7 @@ function landing() {
         <h1>${state.lang === 'nah' ? 'Calmecac: <span class="gradient-text">tlamatiliztli para todos.</span>' : 'La escuela de élite mexica, <span class="gradient-text">gratis y en tu bolsillo.</span>'}</h1>
         <p class="lead"><strong>Zoleva Calmécatl</strong> convierte tus apuntes en un plan de examen, lecciones, tarjetas, cuestionarios y simulacros. Funciona con IA local, proveedores en la nube o los CLIs que ya usas. Tu cuenta es local: sin registro obligatorio, sin pago y sin anuncios.</p>
         ${state.lang === 'nah' ? '<p class="small muted">Calmecac = escuela superior · tlamatiliztli = saber activo, sabiduría.</p>' : ''}
-        <div class="actions"><a class="btn primary" href="#/app">Entrar a la escuela →</a><a class="btn ghost" href="#origen">Conoce el nombre</a></div>
+        <div class="actions"><a class="btn primary" href="#/app">Entrar a la escuela →</a><button class="btn ghost" data-action="show-help">❓ ¿Por dónde empiezo?</button></div>
         <div class="chips"><span class="chip">◈ Offline con Ollama</span><span class="chip">◈ OpenRouter :free</span><span class="chip">◈ Gemini / Groq</span><span class="chip">◈ opencode / codex / claude</span></div>
         <div class="greca" aria-hidden="true"></div>
       </div>
@@ -528,6 +592,7 @@ function landing() {
     </section>
 
     <footer class="footer container"><span>◈ Zoleva Calmécatl · escuela de élite mexica · código abierto</span><span>Hecho para aprender de verdad · MIT License</span></footer>
+    ${helpOverlay()}
   </div>`;
 }
 
@@ -552,13 +617,14 @@ function appShell(view) {
     </aside>
     <main class="main">
       <header class="topbar"><div><h1>${esc(title)}</h1>${nah(view) ? `<div class="nah-line"><span class="nah-term">${esc(nah(view)[0])}</span><span class="nah-gloss">${esc(nah(view)[1])}</span></div>` : ''}<p>${esc(subtitle)}</p></div>
-        <div class="right"><button class="pill" data-action="breathe" title="Pausa de respiración de 60 segundos">🌿 Respirar</button><a class="pill" href="#/app/cuenta" title="Tus recompensas">✦ ${profile()?.points || 0}</a><button class="pill" data-action="toggle-lang" title="Alternar español / náhuatl">${state.lang === 'nah' ? '◈ Náhuatl' : '◈ Español'}</button><span class="pill">${esc(active?.name || 'IA')}</span>${state.ui.busy ? '<span class="spinner"></span>' : ''}</div>
+        <div class="right"><button class="pill" data-action="show-help" title="Guía rápida para principiantes">❓ Cómo empezar</button><button class="pill" data-action="breathe" title="Pausa de respiración de 60 segundos">🌿 Respirar</button><a class="pill" href="#/app/cuenta" title="Tus recompensas">✦ ${profile()?.points || 0}</a><button class="pill" data-action="toggle-lang" title="Alternar español / náhuatl">${state.lang === 'nah' ? '◈ Náhuatl' : '◈ Español'}</button><span class="pill">${esc(active?.name || 'IA')}</span>${state.ui.busy ? '<span class="spinner"></span>' : ''}</div>
       </header>
       <nav class="mobile-nav">${navItems().map((item) => `<a class="tab ${view === item.id ? 'active' : ''}" href="#/app/${item.id}">${item.icon} ${item.label}</a>`).join('')}</nav>
       <div id="content">${views[view] ? views[view]() : views.home()}</div>
     </main>
     ${state.ui.breathing ? `<div class="breath-overlay" data-action="close-breathing"><div class="breath-box" data-stop="1"><div class="breath-circle"><span>${esc(state.ui.breathing.phase)}</span></div><p>${esc(state.ui.breathing.hint)}</p><div class="muted tiny">${state.ui.breathing.count} / 6 · pulsa fuera para salir</div></div></div>` : ''}
     ${state.ui.toast ? `<div class="toast ${state.ui.toast.error ? 'error' : ''}" data-action="close-toast">${esc(state.ui.toast.text)}</div>` : ''}
+    ${helpOverlay()}
   </div>`;
 }
 
@@ -578,7 +644,7 @@ views.home = () => {
     <div class="row">${tutorFaceHtml('sm')}<span class="pill gold">✦ ${p?.points || 0}</span><a class="btn small" href="#/app/cuenta">Recompensas</a><button class="btn small" data-action="breathe">🌿 Respirar</button></div>
   </div>`;
   if (!c) {
-    return `<div class="stack">${header}<div class="panel empty">${tutorFaceHtml('lg')}<h3>${k ? '¡Vamos a crear tu primera misión!' : 'Empecemos con tu primer plan'}</h3>
+    return `<div class="stack">${header}${beginnerChecklist()}<div class="panel empty">${tutorFaceHtml('lg')}<h3>${k ? '¡Vamos a crear tu primera misión!' : 'Empecemos con tu primer plan'}</h3>
       <p>${k ? 'Pon un tema que te guste y tus apuntes. Hacemos pasos pequeños y ganas estrellas.' : 'Crea un plan a partir de tus apuntes. Tu cuenta es local y no pagas nada.'}</p><div class="actions" style="justify-content:center;margin-top:18px"><a class="btn primary" href="#/app/plan">${k ? 'Crear mi misión →' : 'Crear mi plan →'}</a><a class="btn ghost" href="#/app/tutor">Hablar con el tutor</a></div></div></div>`;
   }
   const left = daysUntil(c.examDate);
@@ -592,6 +658,7 @@ views.home = () => {
   });
   return `<div class="stack">
     ${header}
+    ${beginnerChecklist()}
     <div class="panel">
       <div class="row between"><div><span class="eyebrow">${k ? 'Tu meta' : 'Tu examen'}</span><h2 style="margin:8px 0 4px">${esc(c.title || c.subject || 'Mi examen')}</h2><div class="muted small">${esc(c.subject || '')} · nivel ${esc(profile()?.level || config?.level || 'bachillerato')}</div></div>
         ${left !== null ? `<div class="center"><div style="font-family:'Space Grotesk';font-size:34px">${left >= 0 ? left : '—'}</div><div class="muted tiny">días restantes</div></div>` : ''}</div>
@@ -646,17 +713,21 @@ views.plan = () => {
 function planForm() {
   const sample = 'La fotosíntesis es el proceso por el que las plantas convierten la luz solar en energía química. Ocurre en los cloroplastos y requiere agua y dióxido de carbono. Como subproducto se libera oxígeno. La ecuación general es 6CO2 + 6H2O + luz → C6H12O6 + 6O2. La clorofila absorbe principalmente luz roja y azul, y refleja la verde, por eso las hojas son verdes. La fase clara depende de la luz y produce ATP y NADPH; el ciclo de Calvin fija el carbono sin necesidad directa de luz.';
   return `<form class="panel stack" data-form="create-plan">
-    <div><span class="eyebrow">Paso 1</span><h2 style="margin:8px 0">Crea tu plan de examen</h2><p class="muted small">Todo se guarda solo en tu navegador.</p></div>
+    <div><span class="eyebrow">Tu plan</span><h2 style="margin:8px 0">¿Qué vas a estudiar?</h2>
+      <p class="muted small">Escribe un tema y pega tus apuntes. La IA preparará pasos pequeños para ti. Todo se guarda solo en tu navegador.</p></div>
     <div class="grid cols-2">
-      <label class="field">Asignatura o tema<input name="subject" placeholder="Ej.: Biología" required /></label>
-      <label class="field">Fecha del examen<input name="examDate" type="date" /></label>
-      <label class="field">Objetivo<input name="goal" placeholder="Ej.: aprobar con nota alta" /></label>
+      <label class="field">Materia o tema<input name="subject" placeholder="Ej.: Biología" required /></label>
+      <label class="field">¿Cuándo es tu examen? (opcional)<input name="examDate" type="date" /></label>
+      <label class="field">¿Qué quieres lograr? (opcional)<input name="goal" placeholder="Ej.: aprobar con nota alta" /></label>
       <label class="field">Horas al día<input name="hoursPerDay" type="number" min="0.5" max="12" step="0.5" value="1.5" /></label>
     </div>
     <label class="field">Pega aquí tus apuntes<textarea name="material" rows="7" placeholder="Copia aquí tu texto, esquemas o exámenes anteriores…">${state.ui.sample ? esc(sample) : ''}</textarea></label>
-    <label class="field">O sube un archivo de texto / Markdown / imagen<input type="file" data-change="plan-file" accept=".txt,.md,.markdown,.json,image/*" multiple /></label>
-    <div id="plan-files" class="muted small"></div>
-    <div class="row"><button class="btn primary" type="submit" ${state.ui.busy ? 'disabled' : ''}>${state.ui.busy ? '<span class="spinner"></span> Creando…' : '✨ Crear plan'}</button>
+    <p class="muted tiny">¿No tienes apuntes a la mano? Pulsa <strong>Usar ejemplo</strong> al final para probar.</p>
+    <details class="faq"><summary>Opcional: subir un archivo o una foto de tus apuntes</summary>
+      <label class="field"><input type="file" data-change="plan-file" accept=".txt,.md,.markdown,.json,image/*" multiple /></label>
+      <div id="plan-files" class="muted small"></div>
+    </details>
+    <div class="row"><button class="btn primary" type="submit" ${state.ui.busy ? 'disabled' : ''}>${state.ui.busy ? '<span class="spinner"></span> Creando…' : '✨ Crear mi plan'}</button>
       <button class="btn small" type="button" data-action="sample">Usar ejemplo</button></div>
   </form>`;
 }
@@ -715,14 +786,14 @@ views.cards = () => {
       const s = state.srs[card.id];
       const due = !s || s.due <= Date.now();
       return `<div class="topic"><div><h4>${esc(card.front)}</h4><p>${esc(card.back)}</p></div><span class="pill ${due ? 'medium' : 'done'}">${due ? 'pendiente' : `día ${new Date(s.due).toLocaleDateString('es')}`}</span></div>`;
-    }).join('')}</div>` : '<div class="empty"><h3>Aún no hay tarjetas</h3><p>Genera tarjetas a partir de tus materiales o créalas tú.</p></div>'}</div>`;
+    }).join('')}</div>` : `<div class="empty"><h3>Aún no hay tarjetas</h3><p>Una tarjeta es una pregunta y su respuesta. Pulsa el botón de arriba para crearlas con tus apuntes.</p>${c ? '' : '<p class="small">Primero <a href="#/app/plan">crea tu plan</a> para que la IA sepa de qué tema se trata.</p>'}</div>`}</div>`;
 };
 
 views.quiz = () => {
   const c = course();
   const questions = c?.quiz?.questions || [];
   const quiz = state.ui.quiz;
-  if (!questions.length) return `<div class="empty"><h3>Sin preguntas todavía</h3><p>La IA creará un cuestionario usando solo tus apuntes.</p><div style="margin-top:16px"><button class="btn primary" data-action="generate" data-kind="quiz">✨ Generar cuestionario</button></div></div>`;
+  if (!questions.length) return `<div class="empty"><h3>Sin preguntas todavía</h3><p>La IA creará preguntas cortas con explicaciones usando solo tus apuntes. No es un examen: es práctica.</p>${c ? '' : '<p class="small">Primero <a href="#/app/plan">crea tu plan</a>.</p>'}<div style="margin-top:16px"><button class="btn primary" data-action="generate" data-kind="quiz">✨ Generar preguntas</button></div></div>`;
   if (!quiz) {
     return `<div class="panel"><div class="panel-title"><h2>${questions.length} preguntas listas</h2><button class="btn small" data-action="generate" data-kind="quiz">Regenerar</button></div>
       <p class="muted">Cada respuesta se corrige con una explicación. Puedes repetir cuantas veces quieras.</p>
@@ -744,7 +815,7 @@ views.exam = () => {
   const c = course();
   const exam = c?.exam?.questions || [];
   const session = state.ui.exam;
-  if (!exam.length) return `<div class="empty"><h3>Sin simulacro</h3><p>Genera un examen con tu material y practica con tiempo límite.</p><div style="margin-top:16px"><button class="btn primary" data-action="generate" data-kind="exam">✨ Generar simulacro</button></div></div>`;
+  if (!exam.length) return `<div class="empty"><h3>Sin examen de práctica</h3><p>Genera un examen con tu material. Puedes hacerlo con tiempo o sin presión.</p>${c ? '' : '<p class="small">Primero <a href="#/app/plan">crea tu plan</a>.</p>'}<div style="margin-top:16px"><button class="btn primary" data-action="generate" data-kind="exam">✨ Generar examen de práctica</button></div></div>`;
   if (!session) {
     return `<div class="panel"><div class="panel-title"><h2>${exam.length} preguntas · ${exam.reduce((a, q) => a + q.points, 0)} puntos</h2><button class="btn small" data-action="generate" data-kind="exam">Regenerar</button></div>
       <p class="muted">${state.ui.noPressure ? 'Sin temporizador: práctica a tu ritmo, sin nota ni presión.' : `Tendrás ${c.examMinutes || 60} minutos. Las preguntas desarrolladas se corrigen con una rúbrica y, si quieres, con IA.`}</p>
@@ -1189,6 +1260,19 @@ function resizeImage(file, size = 160) {
 
 async function handleAction(action, data) {
   switch (action) {
+    case 'show-help': state.ui.help = true; render(); break;
+    case 'close-help': state.ui.help = false; render(); break;
+    case 'help-go':
+      state.ui.help = false;
+      if (data.href && location.hash !== data.href) location.hash = data.href;
+      render();
+      break;
+    case 'dismiss-guide': {
+      const p = profile();
+      if (p) { p.guideDismissed = true; save(); }
+      toast('Guía oculta. Puedes volver a verla con «❓ Cómo empezar».');
+      break;
+    }
     case 'close-toast': state.ui.toast = null; render(); break;
     case 'toggle-lang': state.lang = state.lang === 'nah' ? 'es' : 'nah'; save(); render(); break;
     case 'breathe': startBreathing(); break;
@@ -1495,6 +1579,7 @@ async function handleForm(form, data) {
       p.calm = data.get('calm') === 'on';
       if (!p.age && LEVELS.find((l) => l.id === p.level)) p.age = LEVELS.find((l) => l.id === p.level).age[0];
       p.avatar3d = data.get('avatar3d') === 'on';
+      p.onboarded = true;
       save(); toast('Cuenta guardada. El tutor se adapta a ti.'); break;
     }
     case 'create-profile': {
@@ -1502,7 +1587,7 @@ async function handleForm(form, data) {
       if (!name) break;
       const level = data.get('level') || 'primaria';
       const info = LEVELS.find((l) => l.id === level);
-      const created = makeProfile({ name, level, age: info?.age[0] || 0, role: 'student' });
+      const created = makeProfile({ name, level, age: info?.age[0] || 0, role: 'student', onboarded: true });
       state.profiles.push(created);
       hydrateProfile(created);
       save(); toast(`Cuenta «${name}» creada.`); break;
@@ -1716,6 +1801,11 @@ function render() {
 }
 
 document.addEventListener('click', (event) => {
+  if (event.target.classList?.contains('help-overlay')) {
+    state.ui.help = false;
+    render();
+    return;
+  }
   if (event.target.closest('[data-stop]')) return;
   const el = event.target.closest('[data-action]');
   if (!el) return;

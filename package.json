@@ -1,6 +1,6 @@
 {
   "name": "zoleva-calmedcatl",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Zoleva Calmécatl · escuela de élite mexica: tutor de estudio libre, local-first y con IA intercambiable",
   "type": "module",
   "private": true,

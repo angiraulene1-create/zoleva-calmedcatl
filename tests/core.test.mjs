@@ -93,6 +93,17 @@ test('el tutor es 2D y no usa perspectiva ni transformaciones 3D', async () => {
   assert.doesNotMatch(css, /translateZ|rotateY/);
 });
 
+test('la interfaz guía a quien empieza con tres pasos y ayuda contextual', async () => {
+  const app = await readFile(new URL('../public/app.js', import.meta.url), 'utf8');
+  const css = await readFile(new URL('../public/styles.css', import.meta.url), 'utf8');
+  assert.match(app, /function beginnerSteps\(\)/);
+  assert.match(app, /data-action="show-help"/);
+  assert.match(app, /data-action="dismiss-guide"/);
+  assert.match(app, /data-action="help-go"/);
+  assert.match(app, /label: 'Mis apuntes'/);
+  assert.match(css, /\.help-overlay\s*\{/);
+});
+
 test('los siete niveles cubren desde kínder hasta doctorado', () => {
   const keys = Object.keys(LEVELS);
   assert.equal(keys.length, 7);

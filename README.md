@@ -28,6 +28,7 @@ Porque preparar un examen no debería exigir una suscripción, un registro oblig
 ### Para estudiantes
 
 - **Cuentas locales**: varias cuentas en el mismo equipo, cada una con sus cursos, chat, tarjetas y progreso. Sin registro obligatorio ni sincronización automática.
+- **Pensada para principiantes**: guía de tres pasos en Inicio, botón **❓ Cómo empezar** en todas las pantallas, nombres claros («Mis apuntes», «Practicar», «Examen de práctica») y textos que explican cada herramienta antes de usarla.
 - **De kínder a doctorado**: kínder, primaria, secundaria, bachillerato, universidad, maestría y doctorado. El nivel ajusta el vocabulario, la extensión de los pasos y la duración sugerida de las sesiones.
 - **Adaptación personal**: edad, estilo de aprendizaje (visual, auditivo, kinestésico, lector o mixto), tono (amable, juguetón o sobrio) y modo sin presión. La adaptación se envía al modelo en cada generación y chat.
 - **Tutor 2D ilustrado y detallado**: ilustraciones SVG propias de **búho, lobo, águila, zorro y un maestro humano (Tlamatinime)**, dibujadas de forma plana y bonita, con capas de ropa/accesorios. No usa perspectiva, WebGL ni dependencias; funciona en móviles modestos y puede desactivarse en equipos lentos.
@@ -96,6 +97,7 @@ HOST=0.0.0.0 PORT=3000 npm start
 
 ### Primeros pasos
 
+0. En **Inicio** verás una guía de tres pasos. El botón **❓ Cómo empezar** está siempre arriba a la derecha y explica cada sección con lenguaje sencillo. Puedes ocultar la guía cuando ya sepas usarlo.
 1. Entra en **Mi cuenta** y elige nombre, rol (estudiante o docente), edad, nivel, estilo de estudio y tono del tutor.
 2. Crea un plan con tus apuntes. El tutor y los materiales se adaptan automáticamente a esa cuenta.
 3. Estudia a tu ritmo: usa **Didáctico** o **Sin presión**, haz la pausa de respiración si hace falta, y gana ✦ puntos con cada avance.
@@ -205,8 +207,8 @@ npm test
 GitHub Actions ejecuta las pruebas en Node 18, 20 y 22 en cada push o PR. Para publicar una versión:
 
 ```bash
-git tag v0.5.0
-git push origin v0.5.0
+git tag v0.5.1
+git push origin v0.5.1
 ```
 
 El workflow `release.yml` crea una release con notas generadas automáticamente y tres archivos: código fuente en ZIP, código fuente en TAR.GZ y la PWA lista para desplegar (`-pwa.zip`).
