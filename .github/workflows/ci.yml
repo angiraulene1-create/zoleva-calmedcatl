@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [18, 20, 22]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Comprobar sintaxis
+        run: |
+          node --check server.js
+          node --check public/app.js
+          node --check src/providers.js
+          node --check src/prompts.js
+          node --check src/demo.js
+      - name: Pruebas unitarias
+        run: npm test

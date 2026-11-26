@@ -1,5 +1,8 @@
-const CACHE = 'zoleva-v1';
-const CORE = ['/', '/index.html', '/styles.css', '/app.js', '/icon.svg', '/manifest.webmanifest'];
+const CACHE = 'zoleva-v2';
+const CORE = [
+  '/', '/index.html', '/styles.css', '/app.js', '/icon.svg', '/manifest.webmanifest',
+  '/favicon.ico', '/apple-touch-icon.png', '/icons/icon-192.png', '/icons/icon-512.png',
+];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(CORE)).then(() => self.skipWaiting()));

@@ -23,8 +23,9 @@ Porque preparar un examen no debería exigir una suscripción, una cuenta ni ent
 
 ## Funciones
 
-- **Página de presentación** con el origen del nombre, funciones y preguntas frecuentes.
-- **App web PWA** instalable en móvil y escritorio.
+- **Página de presentación** con el origen del nombre, glosario náhuatl, funciones y preguntas frecuentes.
+- **App web PWA** instalable en móvil y escritorio, con iconos PNG oficiales para Android, iOS y navegador.
+- **Modo bilingüe Español / Náhuatl**: glosas de términos documentados (`calmecac`, `tlamatiliztli`, `ixtlamachiliztli`, `amoxcalli`…) en la navegación y los encabezados, sin sustituir las etiquetas funcionales.
 - **Plan de examen**: fecha, asignatura, prioridades, temas y seguimiento.
 - **Tutor IA**: modo socrático (pistas), resolución paso a paso y explicación. Acepta fotos de ejercicios con modelos con visión.
 - **Tarjetas de memoria** con programación espaciada tipo SM-2: otra vez / difícil / bien / fácil.
@@ -109,7 +110,10 @@ zoleva-calmedcatl/
 │   ├── styles.css            identidad visual obsidiana / jade / oro
 │   ├── sw.js                 service worker
 │   ├── manifest.webmanifest
-│   └── icon.svg              greca mexica
+│   ├── icon.svg              greca mexica (vectorial)
+│   ├── icons/                PNG 16, 32, 48, 180, 192 y 512 px
+│   ├── apple-touch-icon.png  icono iOS
+│   └── favicon.ico           icono del navegador
 └── tests/core.test.mjs
 ```
 
@@ -118,6 +122,17 @@ zoleva-calmedcatl/
 ```bash
 npm test
 ```
+
+## Releases automáticos
+
+GitHub Actions ejecuta las pruebas en Node 18, 20 y 22 en cada push o PR. Para publicar una versión:
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+El workflow `release.yml` crea una release con notas generadas automáticamente y tres archivos: código fuente en ZIP, código fuente en TAR.GZ y la PWA lista para desplegar (`-pwa.zip`).
 
 ## Contribuir
 
@@ -131,6 +146,8 @@ Las ideas bienvenidas: lectura de PDFs, más proveedores, traducción al náhuat
 ## Identidad visual
 
 Obsidiana como fondo, **jade** para el dominio del conocimiento y **oro** para la disciplina y la excelencia; la greca escalonada del emblema evoca los templos y el calmecac. Tipografía: *Cinzel* para los títulos e *Inter* para el texto.
+
+Los términos náhuatl del glosario y del modo bilingüe provienen del **Breve vocabulario filosófico náhuatl** del Instituto de Investigaciones Históricas de la UNAM y del **Wired Humanities Nahuatl Dictionary**.
 
 ## Límites conocidos (MVP)
 

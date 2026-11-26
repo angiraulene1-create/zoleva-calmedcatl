@@ -32,6 +32,22 @@ const TITLES = {
   settings: ['Ajustes', 'Elige tu IA: local, gratuita o un CLI que ya tengas instalado.'],
 };
 
+// Términos náhuatl documentados. Se muestran como glosas junto a la interfaz
+// en español para no sustituir etiquetas funcionales por traducciones dudosas.
+// Fuentes: UNAM (León-Portilla), Wired Humanities Nahuatl Dictionary.
+const NAHUATL = {
+  home: ['Calmecac', 'escuela superior'],
+  tutor: ['Tlamatinime', 'sabios que enseñan'],
+  plan: ['Tonalpohualli', 'cuenta de los días'],
+  cards: ['Amox', 'códice, libro'],
+  quiz: ['Tlamatiliztli', 'saber activo'],
+  exam: ['Momachtique', 'estudiantes'],
+  materials: ['Amoxcalli', 'casa de los libros'],
+  progress: ['Ixtlamachiliztli', 'hacer sabios los rostros'],
+  settings: ['Tlacahuapahualiztli', 'arte de educar'],
+};
+const nah = (view) => (state.lang === 'nah' ? NAHUATL[view] : null);
+
 function freshState() {
   return {
     courses: [],
@@ -39,6 +55,7 @@ function freshState() {
     chat: [],
     chatMode: 'socratic',
     useMaterial: true,
+    lang: 'es',
     srs: {},
     stats: { minutes: {}, quizResults: [] },
     ui: { busy: false, toast: null, draft: '', images: [], cardSession: null, quiz: null, exam: null, models: [], sample: false },
@@ -144,15 +161,16 @@ function landing() {
   return `<div class="landing">
     <nav class="nav container">
       <a class="brand" href="#/"><span class="brand-mark">◈</span><span class="brand-name">Zoleva Calmécatl</span></a>
-      <div class="nav-links"><a href="#origen">Origen</a><a href="#caracteristicas">Funciones</a><a href="#como-funciona">Cómo funciona</a><a href="#ia">Tu IA</a><a href="#faq">Preguntas</a></div>
-      <a class="btn primary small" href="#/app">Entrar gratis →</a>
+      <div class="nav-links"><a href="#origen">Origen</a><a href="#glosario">Náhuatl</a><a href="#caracteristicas">Funciones</a><a href="#como-funciona">Cómo funciona</a><a href="#ia">Tu IA</a><a href="#faq">Preguntas</a></div>
+      <div class="row"><button class="pill" data-action="toggle-lang">${state.lang === 'nah' ? '◈ Náhuatl' : '◈ Español'}</button><a class="btn primary small" href="#/app">Entrar gratis →</a></div>
     </nav>
 
     <header class="hero container"><div class="hero-grid">
       <div>
         <span class="badge">◈ Del náhuatl: escuela de élite mexica · código abierto</span>
-        <h1>La escuela de élite mexica, <span class="gradient-text">gratis y en tu bolsillo.</span></h1>
+        <h1>${state.lang === 'nah' ? 'Calmecac: <span class="gradient-text">tlamatiliztli para todos.</span>' : 'La escuela de élite mexica, <span class="gradient-text">gratis y en tu bolsillo.</span>'}</h1>
         <p class="lead"><strong>Zoleva Calmécatl</strong> convierte tus apuntes en un plan de examen, lecciones, tarjetas, cuestionarios y simulacros. Funciona con IA local, proveedores gratuitos o los CLIs que ya usas. Sin cuenta, sin pago y sin anuncios.</p>
+        ${state.lang === 'nah' ? '<p class="small muted">Calmecac = escuela superior · tlamatiliztli = saber activo, sabiduría.</p>' : ''}
         <div class="actions"><a class="btn primary" href="#/app">Entrar a la escuela →</a><a class="btn ghost" href="#origen">Conoce el nombre</a></div>
         <div class="chips"><span class="chip">◈ Offline con Ollama</span><span class="chip">◈ OpenRouter :free</span><span class="chip">◈ Gemini / Groq</span><span class="chip">◈ opencode / codex / claude</span></div>
         <div class="greca" aria-hidden="true"></div>
@@ -173,6 +191,18 @@ function landing() {
 
     <section class="block container" id="origen">
       <div class="card origen"><div><span class="eyebrow">El nombre</span><h2 style="margin:10px 0">Zoleva Calmécatl</h2><p>Del náhuatl, <strong>escuela de élite mexica</strong>. El calmecac era el lugar donde se formaban los jóvenes de la nobleza: disciplina, memoria, lectura del cielo y dominio de las artes. Aquí recuperamos esa idea —aprender con rigor y sin excusas— y la ponemos al alcance de cualquiera, gratis y con la IA que tú elijas.</p></div><div class="origen-sello" aria-hidden="true">◈</div></div>
+    </section>
+
+    <section class="block container" id="glosario">
+      <div class="section-head"><span class="eyebrow">Glosario náhuatl</span><h2>Las palabras que dan nombre a cada paso</h2><p>Términos documentados por el Instituto de Investigaciones Históricas de la UNAM y el Wired Humanities Nahuatl Dictionary. La interfaz sigue en español para que nada pierda claridad.</p></div>
+      <div class="grid cols-3">
+        <div class="card"><div class="icon">◈</div><h3>Calmecac</h3><p>Escuela superior; literalmente “en la hilera de casas”. Formaba en saber, disciplina y artes.</p></div>
+        <div class="card"><div class="icon">✧</div><h3>Tlamatiliztli</h3><p>Saber activo, sabiduría que se busca y se ejercita.</p></div>
+        <div class="card"><div class="icon">✧</div><h3>Ixtlamachiliztli</h3><p>“Hacer sabios los rostros ajenos”: transmitir el conocimiento.</p></div>
+        <div class="card"><div class="icon">✧</div><h3>Tlamatinime</h3><p>Los sabios, maestros y poseedores del código.</p></div>
+        <div class="card"><div class="icon">✧</div><h3>Amoxcalli</h3><p>Casa de los libros o códices: biblioteca del saber.</p></div>
+        <div class="card"><div class="icon">✧</div><h3>Tonalpohualli</h3><p>Cuenta de los días; el calendario con el que se ordena el tiempo.</p></div>
+      </div>
     </section>
 
     <section class="block container" id="como-funciona">
@@ -229,7 +259,10 @@ function appShell(view) {
   return `<div class="app">
     <aside class="sidebar">
       <a class="brand" href="#/"><span class="brand-mark">◈</span><span class="brand-name">Zoleva</span></a>
-      <nav>${NAV.map((item) => `<a class="nav-item ${view === item.id ? 'active' : ''}" href="#/app/${item.id}"><span class="ic">${item.icon}</span>${item.label}</a>`).join('')}</nav>
+      <nav>${NAV.map((item) => {
+        const term = nah(item.id);
+        return `<a class="nav-item ${view === item.id ? 'active' : ''}" href="#/app/${item.id}"><span class="ic">${item.icon}</span><span>${item.label}${term ? `<span class="nah-term">${esc(term[0])}</span>` : ''}</span></a>`;
+      }).join('')}</nav>
       <div class="sidebar-foot">
         <div class="status-pill"><span class="dot ${ready ? 'ok' : 'bad'}"></span><div><strong>${esc(active?.name || 'Cargando…')}</strong><br /><span class="tiny">${esc(status?.model || '')}</span></div></div>
         <a class="nav-item" href="#/app/settings"><span class="ic">⚙️</span>${ready ? 'IA conectada' : 'Configurar IA'}</a>
@@ -237,8 +270,8 @@ function appShell(view) {
       </div>
     </aside>
     <main class="main">
-      <header class="topbar"><div><h1>${esc(title)}</h1><p>${esc(subtitle)}</p></div>
-        <div class="right"><span class="pill">${esc(active?.name || 'IA')}</span>${state.ui.busy ? '<span class="spinner"></span>' : ''}</div>
+      <header class="topbar"><div><h1>${esc(title)}</h1>${nah(view) ? `<div class="nah-line"><span class="nah-term">${esc(nah(view)[0])}</span><span class="nah-gloss">${esc(nah(view)[1])}</span></div>` : ''}<p>${esc(subtitle)}</p></div>
+        <div class="right"><button class="pill" data-action="toggle-lang" title="Alternar español / náhuatl">${state.lang === 'nah' ? '◈ Náhuatl' : '◈ Español'}</button><span class="pill">${esc(active?.name || 'IA')}</span>${state.ui.busy ? '<span class="spinner"></span>' : ''}</div>
       </header>
       <nav class="mobile-nav">${NAV.map((item) => `<a class="tab ${view === item.id ? 'active' : ''}" href="#/app/${item.id}">${item.icon} ${item.label}</a>`).join('')}</nav>
       <div id="content">${views[view] ? views[view]() : views.home()}</div>
@@ -488,6 +521,7 @@ views.settings = () => {
       <div class="grid cols-2">
         <label class="field">Modo del tutor<select name="chatMode">${[['socratic', 'Socrático (pistas)'], ['solve', 'Resolver paso a paso'], ['tutor', 'Explicar'], ['explain', 'Explicar']].map(([v, l]) => `<option value="${v}" ${config?.chatMode === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
         <label class="field">Nivel<select name="level">${['primaria', 'eso', 'bachillerato', 'universidad', 'profesional'].map((v) => `<option value="${v}" ${config?.level === v ? 'selected' : ''}>${v}</option>`).join('')}</select></label>
+        <label class="field">Interfaz<select name="lang"><option value="es" ${state.lang === 'es' ? 'selected' : ''}>Español</option><option value="nah" ${state.lang === 'nah' ? 'selected' : ''}>Náhuatl + Español (glosas)</option></select></label>
       </div>
       <button class="btn primary" type="submit">Guardar ajustes</button>
     </div>
@@ -595,6 +629,7 @@ async function readFiles(files) {
 async function handleAction(action, data) {
   switch (action) {
     case 'close-toast': state.ui.toast = null; render(); break;
+    case 'toggle-lang': state.lang = state.lang === 'nah' ? 'es' : 'nah'; save(); render(); break;
     case 'new-course': state.activeCourse = null; location.hash = '#/app/plan'; render(); break;
     case 'sample': state.ui.sample = !state.ui.sample; render(); break;
     case 'chat-mode': state.chatMode = data.mode; save(); render(); break;
@@ -767,6 +802,7 @@ async function handleForm(form, data) {
           cli: { customCommand: data.get('customCommand') },
         };
         await api('/api/config', { method: 'POST', body: JSON.stringify(payload) });
+        state.lang = data.get('lang') === 'nah' ? 'nah' : 'es';
         await refreshStatus();
         toast('Ajustes guardados.');
       });

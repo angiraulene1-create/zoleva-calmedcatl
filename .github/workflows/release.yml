@@ -1,0 +1,38 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verificar antes de publicar
+        run: npm test
+
+      - name: Preparar archivos
+        run: |
+          mkdir -p dist
+          VERSION="${GITHUB_REF_NAME}"
+          PREFIX="zoleva-calmedcatl-${VERSION}/"
+          git archive --format=zip --prefix="$PREFIX" -o "dist/zoleva-calmedcatl-${VERSION}-source.zip" HEAD
+          git archive --format=tar.gz --prefix="$PREFIX" -o "dist/zoleva-calmedcatl-${VERSION}-source.tar.gz" HEAD
+          (cd public && zip -qr "../dist/zoleva-calmedcatl-${VERSION}-pwa.zip" .)
+          ls -lh dist
+
+      - name: Publicar release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --title "Zoleva Calmécatl $GITHUB_REF_NAME" \
+            --generate-notes
