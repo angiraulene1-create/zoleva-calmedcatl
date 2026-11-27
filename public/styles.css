@@ -431,6 +431,10 @@ button.pill:hover { border-color: var(--violet); color: var(--text); }
 .help-box { width: min(640px, 100%); max-height: min(86vh, 760px); overflow: auto; padding: 24px; border-radius: 18px; border: 1px solid rgba(227,189,99,.3); background: linear-gradient(160deg, #121a17, #0b100e); box-shadow: 0 24px 80px rgba(0,0,0,.6); }
 @media (max-width: 640px) { .onboard-step { flex-wrap: wrap; } .onboard-step .grow { flex-basis: calc(100% - 46px); } }
 
+/* Plan multi-materia */
+.subject-row { padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: rgba(255,255,255,.02); }
+.subject-row .eyebrow { font-size: 11px; }
+
 /* Calendario de estudio: cada día y cada sesión se entienden de un vistazo */
 .schedule-days { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
 .schedule-day { padding: 12px; border: 1px solid var(--line); border-radius: 14px; background: rgba(255,255,255,.02); }

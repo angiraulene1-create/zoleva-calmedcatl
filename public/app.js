@@ -183,7 +183,7 @@ function freshState() {
     activeProfile: null,
     ui: {
       busy: false, toast: null, draft: '', images: [], cardSession: null, quiz: null,
-      exam: null, models: [], sample: false, noPressure: false, breathing: null, help: false,
+      exam: null, models: [], noPressure: false, breathing: null, help: false,
       showAllDays: false, activeGroup: null, pendingPlanFiles: [], pendingMaterialFiles: [],
     },
   };
@@ -249,7 +249,7 @@ function cloudPayload() {
   if (active) active.save = pickProfileData(state);
   return {
     app: 'zoleva-calmedcatl',
-    version: 5,
+    version: 6,
     exportedAt: new Date().toISOString(),
     owner: auth?.user ? { id: auth.user.id, email: auth.user.email, provider: auth.user.provider } : null,
     activeProfile: state.activeProfile,
@@ -390,7 +390,13 @@ function course() {
 }
 
 function materialText(c = course()) {
-  return c?.materials?.map((m) => m.text || '').filter(Boolean).join('\n\n').slice(0, 60000) || '';
+  const notes = c?.materials?.map((m) => m.text || '').filter(Boolean).join('\n\n').slice(0, 60000);
+  if (notes) return notes;
+  const topics = (c?.plan?.topics || [])
+    .map((t) => `${t.subject ? `[${t.subject}] ` : ''}${t.title}. ${t.description || ''}`.trim())
+    .filter(Boolean)
+    .join('\n');
+  return topics.slice(0, 60000);
 }
 
 function materialImages(c = course()) {
@@ -451,10 +457,14 @@ function rebuildSchedule(c) {
     if (session.done) doneByTopic.set(session.topicId, (doneByTopic.get(session.topicId) || 0) + 1);
   }
   c.hoursPerDay = Number(c.hoursPerDay) || 1.5;
+  const deadlines = Object.fromEntries(c.plan.topics
+    .filter((t) => t.examDate || t.subjectDate)
+    .map((t) => [t.id, t.examDate || t.subjectDate]));
   c.schedule = buildStudySchedule({
     topics: c.plan.topics,
     examDate: c.examDate || '',
     hoursPerDay: c.hoursPerDay,
+    deadlines,
   });
   for (const session of c.schedule?.sessions || []) {
     const left = doneByTopic.get(session.topicId) || 0;
@@ -474,14 +484,14 @@ function schedulePanel(c) {
     <div class="panel-title"><div><span class="eyebrow">Tu calendario</span><h2 style="margin:6px 0 0">Qué estudiar cada día</h2></div>
       <div class="row"><span class="pill ${schedule?.late ? 'medium' : 'done'}">${schedule ? `${sum.done}/${sum.total} sesiones` : 'sin calendario'}</span>
         <button class="btn small" data-action="build-schedule">${schedule ? 'Rehacer' : 'Crear calendario'}</button></div></div>
-    ${!schedule ? '<p class="muted small">Con tu fecha de examen y el tiempo diario repartimos los temas en sesiones cortas. Así sabes siempre qué toca.</p>' : `
-      <p class="muted small">${sum.total} sesiones · ${sum.days} días · ${Math.round(sum.leftMinutes)} min por delante${schedule.examDate ? ` · examen el ${esc(schedule.examDate)}` : ''}.</p>
-      ${schedule.late ? '<p class="muted small" style="color:var(--amber)">A este ritmo terminas después del examen. Puedes subir tus horas al día en Mi cuenta o hacer un plan con más tiempo.</p>' : ''}
+    ${!schedule ? '<p class="muted small">Con tus fechas y el tiempo diario repartimos los temas de todas tus materias en sesiones cortas. Así sabes siempre qué toca.</p>' : `
+      <p class="muted small">${sum.total} sesiones · ${sum.days} días · ${sum.subjects} materia${sum.subjects === 1 ? '' : 's'} · ${Math.round(sum.leftMinutes)} min por delante${schedule.examDate || c.examDate ? ` · examen el ${esc(schedule.examDate || c.examDate)}` : ''}.</p>
+      ${schedule.late ? '<p class="muted small" style="color:var(--amber)">A este ritmo algunas sesiones caen después de su fecha. Sube tus horas al día al rehacer el plan o cambia prioridades.</p>' : ''}
       <div class="schedule-days">${visible.map((day) => {
         const items = sessionsForDate(schedule, day);
         return `<div class="schedule-day ${day === localDateKey() ? 'today' : ''}">
           <div class="row between"><strong>${esc(dayLabel(day))}</strong><span class="muted tiny">${items.reduce((a, s) => a + s.minutes, 0)} min</span></div>
-          ${items.map((s) => `<div class="session ${s.done ? 'done' : ''}"><button class="session-check" data-action="toggle-session" data-id="${esc(s.id)}" title="${s.done ? 'Marcar pendiente' : 'Marcar lista'}">${s.done ? '✓' : ''}</button><span class="grow">${esc(s.title)}</span><span class="tiny muted">${s.minutes} min</span></div>`).join('')}
+          ${items.map((s) => `<div class="session ${s.done ? 'done' : ''}"><button class="session-check" data-action="toggle-session" data-id="${esc(s.id)}" title="${s.done ? 'Marcar pendiente' : 'Marcar lista'}">${s.done ? '✓' : ''}</button><span class="grow">${esc(s.title)}${s.subject ? ` <span class="tiny muted">· ${esc(s.subject)}</span>` : ''}</span><span class="tiny muted">${s.minutes} min</span></div>`).join('')}
         </div>`;
       }).join('')}</div>
       ${days.length > visible.length ? `<button class="btn small ghost" data-action="toggle-all-days">${state.ui.showAllDays ? 'Ver solo una semana' : `Ver los ${days.length} días`}</button>` : ''}
@@ -505,7 +515,7 @@ function todayPanel(c) {
   return `<div class="panel stack"><div class="panel-title"><div><span class="eyebrow">Lo de hoy</span><h2 style="margin:6px 0 0">${pending.length ? `${pending.length} sesión${pending.length === 1 ? '' : 'es'} pendiente${pending.length === 1 ? '' : 's'}` : '¡Todo hecho por hoy! 🎉'}</h2></div>
       <a class="btn small" href="#/app/plan">Ver calendario</a></div>
     ${pending.length ? `<div class="onboard-steps">${pending.map((s) => `<div class="onboard-step"><span class="onboard-num">${s.minutes}′</span>
-      <div class="grow"><strong>${esc(s.title)}</strong><p class="muted small">${s.date < today ? 'Sesión pendiente de otro día' : 'Sesión de hoy'} · ${esc(c.title || c.subject)}</p></div>
+      <div class="grow"><strong>${esc(s.title)}</strong><p class="muted small">${s.subject ? `${esc(s.subject)} · ` : ''}${s.date < today ? 'Pendiente de otro día' : 'Sesión de hoy'}</p></div>
       <button class="btn small primary" data-action="toggle-session" data-id="${esc(s.id)}">Marcar lista ✓</button></div>`).join('')}</div>`
       : `<p class="muted small">${nextPending ? `Tu próxima sesión es ${esc(nextLabel)}. Puedes adelantarte si quieres.` : '¡Plan completo! Haz un simulacro para comprobar lo que aprendiste.'} También puedes repasar tarjetas o preguntar al tutor.</p>`}
     <div class="row" style="margin-top:14px"><a class="btn primary small" href="#/app/tutor">Preguntar al tutor</a><a class="btn small" href="#/app/cards">Repasar tarjetas</a></div>
@@ -525,8 +535,8 @@ function beginnerSteps() {
     },
     {
       n: 2,
-      title: 'Crea tu plan con tus apuntes',
-      text: 'Pega tu texto o pulsa «Usar ejemplo». Verás un calendario con qué estudiar cada día.',
+      title: 'Crea tu plan de materias',
+      text: 'Escribe los temas de cada materia, sin apuntes. Verás un calendario que combina todas.',
       done: Boolean(course()),
       href: '#/app/plan',
       cta: 'Crear mi plan',
@@ -569,7 +579,7 @@ function helpOverlay() {
       <div class="grow"><strong>${esc(step.title)}</strong><p class="muted small">${esc(step.text)}</p></div>
       <button class="btn small primary" data-action="help-go" data-href="${step.href}">Ir ahí →</button>
     </div>`).join('')}</div>
-    <div class="panel compact"><p class="muted small" style="margin:0">Tu plan reparte los temas en sesiones cortas: en <strong>Inicio</strong> ves «Lo de hoy» y en <strong>Mi plan</strong> el calendario completo. Después usa <strong>Tarjetas</strong> para repasar, <strong>Practicar</strong> con preguntas y <strong>Examen de práctica</strong> para medirte. Todo se guarda en tu navegador: sin registro obligatorio, sin pago y sin anuncios.</p></div>
+    <div class="panel compact"><p class="muted small" style="margin:0">En <strong>Mi plan</strong> puedes poner varias materias y sus temas sin necesitar apuntes. El calendario alterna materias para que avances en todas; en <strong>Inicio</strong> ves «Lo de hoy». Después usa <strong>Tarjetas</strong> para repasar, <strong>Practicar</strong> con preguntas y <strong>Examen de práctica</strong> para medirte. Todo se guarda en tu navegador: sin registro obligatorio, sin pago y sin anuncios.</p></div>
     <p class="muted tiny">Si algo no funciona, prueba Ajustes: con el modo demo puedes ver la app entera sin configurar IA.</p>
   </div></div>`;
 }
@@ -588,7 +598,7 @@ function landing() {
         <img class="hero-wordmark" src="/icons/wordmark.svg" alt="Zoleva Calmécatl" />
         <span class="badge">◈ Del náhuatl: escuela de élite mexica · código abierto</span>
         <h1>${state.lang === 'nah' ? 'Calmecac: <span class="gradient-text">tlamatiliztli para todos.</span>' : 'La escuela de élite mexica, <span class="gradient-text">gratis y en tu bolsillo.</span>'}</h1>
-        <p class="lead"><strong>Zoleva Calmécatl</strong> convierte tus apuntes en un plan de examen, lecciones, tarjetas, cuestionarios y simulacros. Funciona con IA local, proveedores en la nube o los CLIs que ya usas. Tu cuenta es local: sin registro obligatorio, sin pago y sin anuncios.</p>
+        <p class="lead"><strong>Zoleva Calmécatl</strong> convierte tus temas o apuntes en un calendario de estudio, lecciones, tarjetas, cuestionarios y simulacros. Puedes organizar varias materias a la vez, sin registro obligatorio, sin pago y sin anuncios.</p>
         ${state.lang === 'nah' ? '<p class="small muted">Calmecac = escuela superior · tlamatiliztli = saber activo, sabiduría.</p>' : ''}
         <div class="actions"><a class="btn primary" href="#/app">Entrar a la escuela →</a><button class="btn ghost" data-action="show-help">❓ ¿Por dónde empiezo?</button></div>
         <div class="chips"><span class="chip">◈ Offline con Ollama</span><span class="chip">◈ OpenRouter :free</span><span class="chip">◈ Gemini / Groq</span><span class="chip">◈ opencode / codex / claude</span></div>
@@ -628,7 +638,7 @@ function landing() {
       <div class="section-head"><span class="eyebrow">Cómo funciona</span><h2>De un montón de apuntes a un plan que puedes seguir</h2><p>Tú aportas el material. Zoleva Calmécatl lo convierte en pasos pequeños, práctica real y un tutor que te espera cuando te atascas.</p></div>
       <div class="grid cols-4">
         <div class="card"><div class="step-num">01</div><h3>Pon la fecha</h3><p>Dime qué asignatura tienes y cuándo es el examen. El plan se adapta al tiempo que queda.</p></div>
-        <div class="card"><div class="step-num">02</div><h3>Aporta tu material</h3><p>Apuntes, texto, fotos de ejercicios o lo que tengas. Solo se usa lo que subes.</p></div>
+        <div class="card"><div class="step-num">02</div><h3>Pon tus materias y temas</h3><p>Escribe los temas de cada materia sin apuntes. Si tienes material, pégalo después para generar lecciones y preguntas.</p></div>
         <div class="card"><div class="step-num">03</div><h3>Estudia paso a paso</h3><p>Un calendario te dice qué toca cada día. Lecciones, tarjetas, preguntas y simulacros salen de tu material.</p></div>
         <div class="card"><div class="step-num">04</div><h3>Pregunta sin parar</h3><p>El tutor te da pistas, no respuestas. Tú decides cuándo usar la IA local o la de la nube.</p></div>
       </div>
@@ -637,7 +647,7 @@ function landing() {
     <section class="block container" id="caracteristicas">
       <div class="section-head"><span class="eyebrow">Funciones</span><h2>Disciplina, repetición y dominio</h2><p>Como en el calmecac, pero sin puertas cerradas: gratis, de código abierto y con tus datos guardados en tu dispositivo.</p></div>
       <div class="grid cols-3">
-        <div class="card"><div class="icon">🗺️</div><h3>Calendario hasta el examen</h3><p>Temas priorizados y repartidos en sesiones diarias según tu tiempo. Siempre sabes qué toca hoy y qué sigue.</p></div>
+        <div class="card"><div class="icon">🗺️</div><h3>Varias materias, un calendario</h3><p>Escribe temas sin apuntes y reparte sesiones entre todas tus materias. Siempre sabes qué toca hoy y qué sigue.</p></div>
         <div class="card"><div class="icon">💬</div><h3>Tutor socrático</h3><p>Preguntas, pistas y comprobación de comprensión. También puede resolver paso a paso si lo pides.</p></div>
         <div class="card"><div class="icon">🧠</div><h3>Tarjetas inteligentes</h3><p>Repetición espaciada: las difíciles vuelven antes y las que dominas se espacian.</p></div>
         <div class="card"><div class="icon">✅</div><h3>Cuestionarios corregidos</h3><p>Preguntas con explicación para que sepas exactamente dónde fallaste.</p></div>
@@ -771,8 +781,8 @@ views.plan = () => {
   const topics = c.plan?.topics || [];
   const done = topics.filter((t) => t.status === 'done').length;
   return `<div class="stack">
-    <div class="panel"><div class="panel-title"><div><h2>${esc(c.title || c.subject)}</h2><div class="muted small">${esc(c.examDate || 'Sin fecha')} · ${topics.length} temas · ${done} completados</div></div>
-      <div class="row"><a class="btn small" href="#/app/materials">Materiales</a><button class="btn small" data-action="new-course">Nuevo plan</button></div></div>
+    <div class="panel"><div class="panel-title"><div><h2>${esc(c.title || c.subject)}</h2><div class="muted small">${esc(c.subject || 'Sin materias')} · ${c.subjects?.length || 1} materia${c.subjects?.length === 1 ? '' : 's'} · ${topics.length} temas · ${done} completados</div></div>
+      <div class="row"><a class="btn small" href="#/app/materials">Mis apuntes</a><button class="btn small" data-action="new-course">Nuevo plan</button></div></div>
       ${c.plan?.summary ? `<p class="muted" style="line-height:1.6">${esc(c.plan.summary)}</p>` : ''}
       <div class="bar"><i style="width:${topics.length ? Math.round(done / topics.length * 100) : 0}%"></i></div>
       <div class="row" style="margin-top:16px">
@@ -786,8 +796,8 @@ views.plan = () => {
     ${todayPanel(c)}
     ${schedulePanel(c)}
     <div class="panel"><div class="panel-title"><h2>Temas</h2><span class="muted small">marca lo que domines</span></div>
-      ${topics.length ? topics.map((t) => `<div class="topic"><div style="flex:1"><h4>${esc(t.title)}</h4><p>${esc(t.description)}</p><div class="row tiny muted" style="margin-top:6px"><span>⏱ ${t.minutes} min</span><span class="pill ${esc(t.priority)}">${esc(t.priority)}</span></div></div>
-        <select data-change="topic-status" data-id="${esc(t.id)}" style="width:auto"><option value="todo" ${t.status === 'todo' ? 'selected' : ''}>Pendiente</option><option value="doing" ${t.status === 'doing' ? 'selected' : ''}>En curso</option><option value="done" ${t.status === 'done' ? 'selected' : ''}>Dominado</option></select></div>`).join('') : '<p class="muted">Todavía no hay temas. Genera un plan con tus materiales.</p>'}
+      ${topics.length ? topics.map((t) => `<div class="topic"><div style="flex:1"><h4>${esc(t.title)}</h4><p>${esc(t.description)}</p><div class="row wrap tiny muted" style="margin-top:6px"><span>📚 ${esc(t.subject || 'General')}</span>${t.examDate || t.subjectDate ? `<span>📅 ${esc(t.examDate || t.subjectDate)}</span>` : ''}<span>⏱ ${t.minutes} min</span><span class="pill ${esc(t.priority)}">${esc(t.priority)}</span></div></div>
+        <select data-change="topic-status" data-id="${esc(t.id)}" style="width:auto"><option value="todo" ${t.status === 'todo' ? 'selected' : ''}>Pendiente</option><option value="doing" ${t.status === 'doing' ? 'selected' : ''}>En curso</option><option value="done" ${t.status === 'done' ? 'selected' : ''}>Dominado</option></select></div>`).join('') : '<p class="muted">Todavía no hay temas. Crea un plan escribiendo los temas de tus materias.</p>'}
     </div>
     ${c.plan?.tips?.length ? `<div class="panel"><h3>Consejos para esta preparación</h3><ul class="muted">${c.plan.tips.map((t) => `<li>${esc(t)}</li>`).join('')}</ul></div>` : ''}
     ${c.lessons?.length ? `<div class="panel"><h2>Lecciones</h2>${c.lessons.map((l) => `<details class="faq" style="padding:12px 0"><summary>${esc(l.title)}</summary><p>${md(l.explanation)}</p>${l.example ? `<p class="small"><strong>Ejemplo:</strong> ${esc(l.example)}</p>` : ''}${l.keyPoints?.length ? `<p class="small"><strong>Claves:</strong> ${l.keyPoints.map(esc).join(' · ')}</p>` : ''}</details>`).join('')}</div>` : ''}
@@ -795,25 +805,57 @@ views.plan = () => {
   </div>`;
 };
 
-function planForm() {
-  const sample = 'La fotosíntesis es el proceso por el que las plantas convierten la luz solar en energía química. Ocurre en los cloroplastos y requiere agua y dióxido de carbono. Como subproducto se libera oxígeno. La ecuación general es 6CO2 + 6H2O + luz → C6H12O6 + 6O2. La clorofila absorbe principalmente luz roja y azul, y refleja la verde, por eso las hojas son verdes. La fase clara depende de la luz y produce ATP y NADPH; el ciclo de Calvin fija el carbono sin necesidad directa de luz.';
-  return `<form class="panel stack" data-form="create-plan">
-    <div><span class="eyebrow">Tu plan</span><h2 style="margin:8px 0">¿Qué vas a estudiar?</h2>
-      <p class="muted small">Escribe un tema y pega tus apuntes. Con la fecha del examen y tus horas al día prepararemos un calendario de sesiones cortas. Todo se guarda solo en tu navegador.</p></div>
+/** Convierte apuntes sueltos en temas cuando la persona no escribió temas. */
+function topicsFromText(text) {
+  const parts = String(text || '').replace(/\s+/g, ' ').split(/(?<=[.!?])\s+|\n+/)
+    .map((s) => s.trim()).filter((s) => s.length > 25);
+  const chunks = [];
+  for (let i = 0; i < parts.length && chunks.length < 8; i += 2) {
+    chunks.push(parts.slice(i, i + 2).join(' '));
+  }
+  return chunks.map((chunk) => ({
+    title: chunk.split(' ').slice(0, 6).join(' ').replace(/[.,;:]$/, ''),
+    description: chunk.slice(0, 400),
+  }));
+}
+
+function subjectRow(values = {}) {
+  const rowId = uid();
+  const priority = values.priority || 'medium';
+  const priorities = [['high', 'Alta'], ['medium', 'Media'], ['low', 'Baja']];
+  return `<div class="subject-row" data-id="${rowId}" data-subject-row>
+    <div class="row between"><span class="eyebrow">Materia</span>
+      <button class="btn small ghost" type="button" data-action="remove-subject" data-id="${rowId}" title="Quitar esta materia">Quitar ✕</button></div>
     <div class="grid cols-2">
-      <label class="field">Materia o tema<input name="subject" placeholder="Ej.: Biología" required /></label>
-      <label class="field">¿Cuándo es tu examen? (opcional)<input name="examDate" type="date" /></label>
-      <label class="field">¿Qué quieres lograr? (opcional)<input name="goal" placeholder="Ej.: aprobar con nota alta" /></label>
-      <label class="field">Horas al día para estudiar<input name="hoursPerDay" type="number" min="0.5" max="12" step="0.5" value="1.5" /></label>
+      <label class="field">Materia<input name="subject" placeholder="Ej.: Biología" value="${esc(values.subject || '')}" /></label>
+      <label class="field">Fecha de su examen (opcional)<input name="subjectDate" type="date" value="${esc(values.subjectDate || '')}" /></label>
     </div>
-    <label class="field">Pega aquí tus apuntes<textarea name="material" rows="7" placeholder="Copia aquí tu texto, esquemas o exámenes anteriores…">${state.ui.sample ? esc(sample) : ''}</textarea></label>
-    <p class="muted tiny">¿No tienes apuntes a la mano? Pulsa <strong>Usar ejemplo</strong> al final para probar.</p>
-    <details class="faq"><summary>Opcional: subir un archivo o una foto de tus apuntes</summary>
+    <label class="field">Temas (uno por línea)<textarea name="topics" rows="3" placeholder="Fotosíntesis&#10;Ciclo de Calvin&#10;Respiración celular">${esc(values.topics || '')}</textarea></label>
+    <div class="grid cols-2">
+      <label class="field">Minutos por tema<input name="minutes" type="number" min="5" max="240" step="5" value="${esc(values.minutes || 30)}" /></label>
+      <label class="field">Prioridad<select name="priority">${priorities.map(([value, label]) => `<option value="${value}" ${priority === value ? 'selected' : ''}>${label}</option>`).join('')}</select></label>
+    </div>
+  </div>`;
+}
+
+function planForm() {
+  return `<form class="panel stack" data-form="create-plan" data-multi-plan>
+    <div><span class="eyebrow">Tu plan</span><h2 style="margin:8px 0">Organiza todas tus materias</h2>
+      <p class="muted small">Escribe los temas de cada materia, uno por línea. No necesitas apuntes ni ejemplos: con tus horas al día haremos un calendario que combine todas las materias.</p></div>
+    <label class="field">Nombre del plan (opcional)<input name="title" placeholder="Ej.: Exámenes de julio" /></label>
+    <div class="grid cols-2">
+      <label class="field">Horas al día para estudiar<input name="hoursPerDay" type="number" min="0.5" max="12" step="0.5" value="1.5" /></label>
+      <label class="field">Fecha general (opcional)<input name="examDate" type="date" /></label>
+    </div>
+    <div id="subjects" class="stack">${subjectRow()}</div>
+    <div><button class="btn small" type="button" data-action="add-subject">+ Añadir otra materia</button></div>
+    <details class="faq"><summary>Opcional: pegar apuntes o subir archivos</summary>
+      <label class="field">Apuntes<textarea name="material" rows="5" placeholder="Pega aquí tu texto, esquemas o exámenes anteriores…"></textarea></label>
       <label class="field"><input type="file" data-change="plan-file" accept=".txt,.md,.markdown,.json,image/*" multiple /></label>
       <div id="plan-files" class="muted small"></div>
+      <p class="muted tiny">Si no pones apuntes, el plan se crea igual con los temas que escribiste.</p>
     </details>
-    <div class="row"><button class="btn primary" type="submit" ${state.ui.busy ? 'disabled' : ''}>${state.ui.busy ? '<span class="spinner"></span> Creando…' : '✨ Crear mi plan'}</button>
-      <button class="btn small" type="button" data-action="sample">Usar ejemplo</button></div>
+    <div class="row"><button class="btn primary" type="submit" ${state.ui.busy ? 'disabled' : ''}>${state.ui.busy ? '<span class="spinner"></span> Creando…' : '✨ Crear mi plan'}</button></div>
   </form>`;
 }
 
@@ -1411,6 +1453,28 @@ async function handleAction(action, data) {
     case 'import-progress': $('#group-progress')?.click(); break;
     case 'teacher-generate': busy(() => generateTeacher(data.kind, data.id)); break;
     case 'new-course': state.activeCourse = null; location.hash = '#/app/plan'; render(); break;
+    case 'add-subject': {
+      const wrap = $('#subjects');
+      if (!wrap) break;
+      const row = wrap.querySelector('.subject-row')?.cloneNode(true);
+      if (!row) break;
+      row.dataset.id = uid();
+      const remove = row.querySelector('[data-action="remove-subject"]');
+      if (remove) remove.dataset.id = row.dataset.id;
+      row.querySelectorAll('input, textarea').forEach((field) => { field.value = field.type === 'number' ? '30' : ''; });
+      const priority = row.querySelector('select[name="priority"]');
+      if (priority) priority.value = 'medium';
+      wrap.appendChild(row);
+      row.querySelector('input[name="subject"]')?.focus();
+      break;
+    }
+    case 'remove-subject': {
+      const row = document.querySelector(`.subject-row[data-id="${data.id}"]`);
+      const wrap = $('#subjects');
+      if (row && wrap && wrap.querySelectorAll('.subject-row').length > 1) row.remove();
+      else toast('Debe quedar al menos una materia.', true);
+      break;
+    }
     case 'build-schedule': {
       const c = course();
       if (!c?.plan?.topics?.length) { toast('Crea primero un plan con tus apuntes.', true); break; }
@@ -1432,7 +1496,6 @@ async function handleAction(action, data) {
       break;
     }
     case 'toggle-all-days': state.ui.showAllDays = !state.ui.showAllDays; render(); break;
-    case 'sample': state.ui.sample = !state.ui.sample; render(); break;
     case 'chat-mode': state.chatMode = data.mode; save(); render(); break;
     case 'use-example': state.ui.draft = data.text; render(); $('#chat-input')?.focus(); break;
     case 'pick-image': $('#chat-image')?.click(); break;
@@ -1596,39 +1659,97 @@ async function handleForm(form, data) {
     case 'create-plan':
       await busy(async () => {
         const files = await readFiles(state.ui.pendingPlanFiles || []);
-        const text = [data.get('material') || '', ...files.filter((f) => f.kind === 'text').map((f) => f.text)].join('\n\n').trim();
-        if (!text) throw new Error('Pega tus apuntes o sube un archivo.');
-        const generated = await api('/api/generate', {
-          method: 'POST',
-          body: JSON.stringify({
-            kind: 'plan',
-            material: text,
-            subject: data.get('subject'),
-            examDate: data.get('examDate'),
-            goal: data.get('goal'),
-            hoursPerDay: data.get('hoursPerDay'),
-            level: config?.level,
-          }),
-        });
+        const notes = [data.get('material') || '', ...files.filter((f) => f.kind === 'text').map((f) => f.text)].join('\n\n').trim();
+        const generalDate = data.get('examDate') || '';
+        const subjectsList = data.getAll('subject');
+        const topicsList = data.getAll('topics');
+        const submitted = subjectsList.map((name, index) => {
+          const examDate = String(data.getAll('subjectDate')[index] || '') || generalDate;
+          const topicsText = String(topicsList[index] || '');
+          const minutes = Math.max(5, Math.min(240, Number(data.getAll('minutes')[index]) || 30));
+          const priorityValue = String(data.getAll('priority')[index] || 'medium');
+          return {
+            name: String(name || '').trim(),
+            examDate,
+            topicsText,
+            minutes,
+            priority: ['high', 'medium', 'low'].includes(priorityValue) ? priorityValue : 'medium',
+          };
+        }).filter((item) => item.name || item.topicsText || item.examDate);
+        if (!submitted.length) throw new Error('Escribe al menos una materia y sus temas.');
+
+        const allTopics = [];
+        const subjects = [];
+        let notesUsed = false;
+        for (const item of submitted) {
+          const name = item.name || 'General';
+          const lines = item.topicsText.split(/\r?\n/)
+            .map((line) => line.replace(/^[-•\d.)\s]+/, '').trim()).filter(Boolean);
+          let resolved = lines.length ? lines.map((title) => ({ title, description: '' })) : [];
+          if (!resolved.length && !notesUsed) {
+            resolved = topicsFromText(notes);
+            if (resolved.length) notesUsed = true;
+          }
+          if (!resolved.length) {
+            resolved = topicsFromText(notes);
+            if (resolved.length) notesUsed = true;
+          }
+          if (!resolved.length) continue;
+          const topicIds = resolved.map((entry) => {
+            const topicId = uid();
+            allTopics.push({
+              id: topicId,
+              subject: name,
+              examDate: item.examDate || '',
+              title: entry.title.slice(0, 120),
+              description: entry.description || `Repasa ${entry.title} de ${name}. Si necesitas ayuda, pregúntale al tutor.`,
+              minutes: item.minutes,
+              priority: item.priority,
+              status: 'todo',
+            });
+            return topicId;
+          });
+          subjects.push({
+            id: uid(), name, examDate: item.examDate || '',
+            minutes: item.minutes, priority: item.priority, topicIds,
+          });
+        }
+        if (!allTopics.length) throw new Error('Escribe temas en una materia o pega apuntes para crear el plan.');
+
+        const dates = subjects.map((s) => s.examDate).filter(Boolean).sort();
         const id = uid();
-        state.courses.push({
+        const title = String(data.get('title') || '').trim()
+          || (subjects.length > 1 ? `Mi plan · ${subjects.length} materias` : subjects[0].name);
+        const created = {
           id,
-          title: data.get('subject') || 'Mi examen',
-          subject: data.get('subject') || '',
-          examDate: data.get('examDate') || '',
-          goal: data.get('goal') || '',
+          title,
+          subject: subjects.map((s) => s.name).join(', '),
+          subjects,
+          examDate: dates[0] || '',
+          goal: '',
           hoursPerDay: Number(data.get('hoursPerDay')) || 1.5,
           createdAt: new Date().toISOString(),
-          plan: generated.data,
-          materials: [{ id: uid(), name: 'Apuntes iniciales', text, images: files.filter((f) => f.kind === 'image'), addedAt: new Date().toISOString() }],
+          plan: {
+            subject: title,
+            summary: `${allTopics.length} temas en ${subjects.length} materia${subjects.length === 1 ? '' : 's'}. El calendario alterna materias para avanzar en todas a la vez.`,
+            topics: allTopics,
+            tips: [
+              'Empieza siempre por «Lo de hoy».',
+              'Si una materia tiene examen pronto, pon su prioridad en Alta.',
+              'Marca cada sesión al terminarla: el tema pasará a Dominado.',
+            ],
+          },
+          materials: notes || files.some((f) => f.kind === 'image')
+            ? [{ id: uid(), name: 'Apuntes del plan', text: notes, images: files.filter((f) => f.kind === 'image'), addedAt: new Date().toISOString() }]
+            : [],
           flashcards: [], lessons: [], quiz: null, exam: null, podcast: null, examMinutes: 60,
-        });
-        rebuildSchedule(state.courses.at(-1));
+        };
+        rebuildSchedule(created);
+        state.courses.push(created);
         state.activeCourse = id;
         state.ui.pendingPlanFiles = [];
-        state.ui.sample = false;
         award(5, 'first-plan');
-        if (generated.warning) state.ui.toast = { text: generated.warning, error: false };
+        if (!state.ui.toast) state.ui.toast = { text: `✨ Plan listo: ${allTopics.length} temas en ${subjects.length} materias.`, error: false };
         location.hash = '#/app/plan';
       });
       break;

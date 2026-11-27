@@ -46,8 +46,38 @@ test('consulta el día de hoy y resume el trabajo pendiente', () => {
   assert.equal(sessionsForDate(schedule, '2026-11-26').length, 1);
   assert.equal(sessionsForDate(schedule, '2026-11-27').length, 0);
   assert.deepEqual(scheduleSummary(schedule), {
-    total: 1, done: 1, minutes: 30, doneMinutes: 30, leftMinutes: 0, days: 1,
+    total: 1, done: 1, minutes: 30, doneMinutes: 30, leftMinutes: 0, days: 1, subjects: 1,
   });
+});
+
+test('alterna materias para no abandonar ninguna', () => {
+  const schedule = buildStudySchedule({
+    topics: [
+      { id: 'b1', subject: 'Biología', title: 'B1', minutes: 30, priority: 'high' },
+      { id: 'b2', subject: 'Biología', title: 'B2', minutes: 30, priority: 'high' },
+      { id: 'h1', subject: 'Historia', title: 'H1', minutes: 30, priority: 'low' },
+      { id: 'h2', subject: 'Historia', title: 'H2', minutes: 30, priority: 'low' },
+    ],
+    hoursPerDay: 2,
+    now: NOW,
+  });
+  assert.deepEqual(schedule.sessions.map((s) => `${s.subject}:${s.title}`), [
+    'Biología:B1', 'Historia:H1', 'Biología:B2', 'Historia:H2',
+  ]);
+  assert.equal(scheduleSummary(schedule).subjects, 2);
+});
+
+test('avisa si una sesión cae después de la fecha de su materia', () => {
+  const schedule = buildStudySchedule({
+    topics: [
+      { id: 'a', subject: 'Mate', title: 'A', minutes: 120, examDate: '2026-11-26' },
+      { id: 'b', subject: 'Historia', title: 'B', minutes: 60, examDate: '2026-12-10' },
+    ],
+    hoursPerDay: 1,
+    now: NOW,
+  });
+  assert.equal(schedule.late, true);
+  assert.equal(schedule.sessions.filter((s) => s.subject === 'Mate').length, 2);
 });
 
 test('sin temas pendientes no hay calendario', () => {

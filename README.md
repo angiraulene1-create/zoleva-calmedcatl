@@ -37,7 +37,8 @@ Porque preparar un examen no debería exigir una suscripción, un registro oblig
 - **Recompensas internas**: ganas ✦ puntos por estudiar, desbloqueas insignias y cambias de tutor —búho, lobo, águila, zorro o maestro— y de **accesorios** (penacho, gafas, amuleto, capa) y marcos de cuenta. Todo queda en tu equipo; no hay compras, clasificaciones ni competencia.
 - **Foto de cuenta y avatar**: la foto se reduce a 160 px y se guarda solo en el navegador.
 - **Cuenta opcional y respaldo en la nube**: entra con correo o con Google/Microsoft/GitHub si quieres, o sigue usando la app sin registrarte. Con sesión, sube o baja tu cuenta directamente en tu servidor; o configura tu propia URL y token. Nunca es automático.
-- **Calendario de estudio tipo Astra**: fecha, asignatura y horas al día producen sesiones cortas; en Inicio ves «Lo de hoy» y en Mi plan el calendario completo, con opción de marcar cada sesión y ver cuándo termina respecto al examen.
+- **Plan multi-materia sin apuntes**: escribe los temas de varias materias (uno por línea), su fecha de examen, minutos y prioridad; no necesitas apuntes ni usar ejemplos. El calendario alterna materias para administrar bien el tiempo. Los apuntes siguen siendo opcionales para generar lecciones, tarjetas y preguntas.
+- **Calendario de estudio tipo Astra**: las horas al día y las fechas producen sesiones cortas; en Inicio ves «Lo de hoy» y en Mi plan el calendario completo, con opción de marcar cada sesión y avisos si alguna cae después de su examen.
 - **Tarjetas de memoria** con programación espaciada tipo SM-2: otra vez / difícil / bien / fácil.
 - **Cuestionarios corregidos** con explicación por respuesta.
 - **Simulacros**: preguntas objetivas y desarrolladas con rúbrica, con o sin temporizador.
@@ -99,8 +100,8 @@ HOST=0.0.0.0 PORT=3000 npm start
 
 0. En **Inicio** verás una guía de tres pasos. El botón **❓ Cómo empezar** está siempre arriba a la derecha y explica cada sección con lenguaje sencillo. Puedes ocultar la guía cuando ya sepas usarlo.
 1. Entra en **Mi cuenta** y elige nombre, rol (estudiante o docente), edad, nivel, estilo de estudio y tono del tutor.
-2. Crea un plan con tus apuntes, la fecha del examen y tus horas al día. El tutor y los materiales se adaptan a esa cuenta, y los temas se reparten en un calendario de sesiones cortas.
-3. Empieza por **Lo de hoy** en Inicio: marca cada sesión al terminarla; cuando se acaban las sesiones de un tema, ese tema pasa a «Dominado». Puedes ver el calendario completo en **Mi plan** y rehacerlo si cambias de ritmo.
+2. En **Mi plan**, pulsa **Crear mi plan**: escribe el nombre de cada materia y sus temas (uno por línea), añade cuantas materias quieras con **+ Añadir otra materia** y ajusta horas al día, fechas, minutos y prioridades. No hacen falta apuntes ni ejemplos.
+3. Empieza por **Lo de hoy** en Inicio: marca cada sesión al terminarla; cuando se acaban las sesiones de un tema, ese tema pasa a «Dominado». El calendario combina todas las materias y puedes rehacerlo en **Mi plan** si cambias de ritmo. Los apuntes son opcionales: pégalos en el plan si quieres generar lecciones, tarjetas y preguntas con IA.
 4. Estudia a tu ritmo: usa **Didáctico** o **Sin presión**, haz la pausa de respiración si hace falta, y gana ✦ puntos con cada avance.
 5. Canjea los puntos por atuendos, accesorios o un marco en **Mi cuenta**. Si eres docente, activa el rol y prepara guías, rúbricas y juegos en **Docencia**.
 6. Si quieres, entra con tu cuenta en **Mi cuenta** y pulsa **Subir mi cuenta al servidor**, o configura tu propia URL y token y pulsa **Subir ahora**. Tu cuenta seguirá funcionando sin red.
@@ -208,8 +209,8 @@ npm test
 GitHub Actions ejecuta las pruebas en Node 18, 20 y 22 en cada push o PR. Para publicar una versión:
 
 ```bash
-git tag v0.6.0
-git push origin v0.6.0
+git tag v0.7.0
+git push origin v0.7.0
 ```
 
 El workflow `release.yml` crea una release con notas generadas automáticamente y tres archivos: código fuente en ZIP, código fuente en TAR.GZ y la PWA lista para desplegar (`-pwa.zip`).

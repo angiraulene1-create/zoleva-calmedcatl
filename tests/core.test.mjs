@@ -115,7 +115,12 @@ test('el plan se reparte en un calendario diario con «Lo de hoy»', async () =>
   assert.match(app, /data-action="build-schedule"/);
   assert.match(app, /data-action="toggle-session"/);
   assert.match(app, /data-action="toggle-all-days"/);
+  assert.match(app, /function subjectRow\(/);
+  assert.match(app, /function topicsFromText\(/);
+  assert.match(app, /data-action="add-subject"/);
+  assert.doesNotMatch(app, /data-action="sample"/);
   assert.match(css, /\.schedule-days\s*\{/);
+  assert.match(css, /\.subject-row\s*\{/);
   assert.match(sw, /'\/schedule\.js'/);
 });
 

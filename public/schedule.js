@@ -10,23 +10,60 @@ function dateKey(value) {
   return `${year}-${month}-${day}`;
 }
 
+const usableDate = (value, today) => (
+  /^\d{4}-\d{2}-\d{2}$/.test(String(value || '')) && value >= today ? value : ''
+);
+
 export const localDateKey = (date = new Date()) => dateKey(date);
 
-/** Reparte los temas en sesiones diarias dentro del tiempo que la persona tiene al día. */
-export function buildStudySchedule({ topics = [], examDate = '', hoursPerDay = 1.5, now = new Date() } = {}) {
+/**
+ * Reparte los temas en sesiones diarias. Si hay varias materias, alterna una
+ * tema de cada una para que ninguna quede abandonada al final del calendario.
+ */
+export function buildStudySchedule({
+  topics = [], examDate = '', hoursPerDay = 1.5, now = new Date(), deadlines = {},
+} = {}) {
   const pending = (Array.isArray(topics) ? topics : []).filter(
     (topic) => topic && topic.status !== 'done' && String(topic.title || '').trim(),
   );
   if (!pending.length) return null;
 
-  const sorted = [...pending].sort((a, b) => (ORDER[a.priority] ?? 1) - (ORDER[b.priority] ?? 1));
+  // Agrupar por materia y ordenar cada grupo por prioridad.
+  const groups = new Map();
+  for (const topic of pending) {
+    const key = String(topic.subject || 'General').trim() || 'General';
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(topic);
+  }
+  for (const list of groups.values()) {
+    list.sort((a, b) => (ORDER[a.priority] ?? 1) - (ORDER[b.priority] ?? 1));
+  }
+
+  // Ronda equitativa: un tema de cada materia por vuelta.
+  const keys = [...groups.keys()];
+  const ordered = [];
+  let groupsLeft = keys.length;
+  while (groupsLeft > 0) {
+    for (const key of keys) {
+      const list = groups.get(key);
+      if (!list.length) continue;
+      ordered.push({ topic: list.shift(), subject: key });
+      if (!list.length) groupsLeft--;
+    }
+  }
+
   const budget = Math.max(15, Math.min(480, Math.round((Number(hoursPerDay) || 1.5) * 60)));
   const blocks = [];
-  for (const topic of sorted) {
-    let remaining = Math.max(10, Math.min(240, Math.round(Number(topic.minutes) || 30)));
+  for (const { topic, subject } of ordered) {
+    let remaining = Math.max(5, Math.min(240, Math.round(Number(topic.minutes) || 30)));
     while (remaining > 0) {
       const minutes = Math.min(remaining, budget);
-      blocks.push({ topicId: topic.id, title: String(topic.title).slice(0, 120), minutes });
+      blocks.push({
+        topicId: topic.id,
+        title: String(topic.title).slice(0, 120),
+        subject,
+        minutes,
+      });
       remaining -= minutes;
     }
   }
@@ -47,19 +84,32 @@ export function buildStudySchedule({ topics = [], examDate = '', hoursPerDay = 1
       date: dateKey(cursor),
       topicId: block.topicId,
       title: block.title,
+      subject: block.subject,
       minutes: block.minutes,
       done: false,
     });
     used += block.minutes;
   }
 
-  const deadline = /^\d{4}-\d{2}-\d{2}$/.test(examDate) && examDate >= today ? examDate : '';
+  const deadlinesMap = { ...(deadlines && typeof deadlines === 'object' ? deadlines : {}) };
+  for (const topic of pending) {
+    const deadline = topic.examDate || topic.subjectDate || deadlinesMap[topic.id];
+    if (deadline) deadlinesMap[topic.id] = deadline;
+  }
+  const hasOwnDeadlines = Object.values(deadlinesMap).some((value) => usableDate(value, today));
+  const globalDeadline = hasOwnDeadlines ? '' : usableDate(examDate, today);
   const lastDate = sessions.at(-1)?.date || '';
+  const lateBySubject = sessions.some((session) => {
+    const deadline = usableDate(deadlinesMap[session.topicId], today);
+    return deadline && session.date > deadline;
+  });
+
   return {
     hoursPerDay: Number(hoursPerDay) || 1.5,
-    examDate: deadline,
+    examDate: globalDeadline,
+    deadlines: deadlinesMap,
     generatedAt: new Date().toISOString(),
-    late: Boolean(deadline && lastDate > deadline),
+    late: lateBySubject || Boolean(globalDeadline && lastDate > globalDeadline),
     sessions,
   };
 }
@@ -80,5 +130,6 @@ export function scheduleSummary(schedule) {
     doneMinutes,
     leftMinutes: Math.max(0, minutes - doneMinutes),
     days: new Set(sessions.map((session) => session.date)).size,
+    subjects: new Set(sessions.map((session) => session.subject).filter(Boolean)).size,
   };
 }
